@@ -9,20 +9,29 @@ export class CreatePaymentDto {
   roomId!: string;
 
   @IsNumber()
-  amount!: number;
+  electricityPrevious!: number;
+
+  @IsNumber()
+  electricityCurrent!: number;
+
+  @IsNumber()
+  waterPrevious!: number;
+
+  @IsNumber()
+  waterCurrent!: number;
+
+  @IsOptional()
+  @IsNumber()
+  otherFee?: number;
 
   @IsString()
-  month!: string; 
+  month!: string;
 
   @IsEnum(PaymentStatus)
   status!: PaymentStatus;
 
   @IsDateString()
   dueDate!: string;
-
-  @IsOptional()
-  @IsDateString()
-  paidDate?: string;
 
   @IsOptional()
   @IsString()

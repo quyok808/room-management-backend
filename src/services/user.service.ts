@@ -176,11 +176,11 @@ export const getNonTenantUsers = async (
     limit?: number;
   },
 ) => {
-  // Get all users that do not have any tenant record (not in tenant table at all)
-  const tenantUserIds = await Tenant.distinct("userId");
+  // Get all users that do not have any active tenant record (inactive tenants are included)
+  const activeTenantUserIds = await Tenant.distinct("userId", { status: "active" });
 
   let query: any = {
-    _id: { $nin: tenantUserIds }, // Exclude users who have any tenant record
+    _id: { $nin: activeTenantUserIds }, // Exclude users who have active tenant record
   };
 
   // Add search filters

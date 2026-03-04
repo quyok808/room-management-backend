@@ -7,6 +7,7 @@ import {
   getAllRoomsController,
   getRoomByIdController,
   getOccupiedRoomsController,
+  getRoomByUserIdController,
 } from "../controllers/room.controller";
 import { validateDto } from "../middlewares/validate.middleware";
 import { UpdateRoomDto, AssignTenantDto } from "../dtos/room.dto";
@@ -65,6 +66,13 @@ router.get(
   authMiddleware,
   requireRole([ROLE.OWNER, ROLE.TENANT]),
   getRoomByIdController,
+);
+
+router.get(
+  "/tenant/:userId",
+  authMiddleware,
+  requireRole([ROLE.OWNER, ROLE.TENANT]),
+  getRoomByUserIdController,
 );
 
 export default router;

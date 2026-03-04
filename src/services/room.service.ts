@@ -174,16 +174,19 @@ export const getRoomById = async (roomId: string): Promise<IRoom | null> => {
   return room;
 };
 
-export const getOccupiedRooms = async (searchParams?: {
-  buildingId?: string;
-  floor?: number;
-}, pagination?: {
-  page?: number;
-  limit?: number;
-}) => {
+export const getOccupiedRooms = async (
+  searchParams?: {
+    buildingId?: string;
+    floor?: number;
+  },
+  pagination?: {
+    page?: number;
+    limit?: number;
+  },
+) => {
   let query: any = {
     currentTenant: { $exists: true, $ne: null }, // Only rooms with current tenant
-    status: ROOMSTATUS.OCCUPIED
+    status: ROOMSTATUS.OCCUPIED,
   };
 
   // Filter by buildingId
@@ -204,8 +207,8 @@ export const getOccupiedRooms = async (searchParams?: {
   const totalPages = Math.ceil(total / limit);
 
   const rooms = await Room.find(query)
-    .populate('buildingId', 'name')
-    .populate('currentTenant', 'name email')
+    .populate("buildingId", "name")
+    .populate("currentTenant", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -218,7 +221,11 @@ export const getOccupiedRooms = async (searchParams?: {
       total,
       totalPages,
       hasNext: page < totalPages,
-      hasPrev: page > 1
-    }
+      hasPrev: page > 1,
+    },
   };
+};
+
+export const getRoomByUserId = (userId: string) => {
+  return Room.findOne({ currentTenant: userId }).populate("buildingId", "name");
 };
