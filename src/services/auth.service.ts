@@ -24,3 +24,22 @@ export const login = async (email: string, password: string) => {
     token 
   };
 };
+
+export const changePassword = async (userId: string, oldPassword: string, newPassword: string) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const isMatch = await bcrypt.compare(oldPassword, user.password);
+  if (!isMatch) {
+    throw new Error("Old password is incorrect");
+  }
+
+  const saltRounds = 10;
+  const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+  user.password = hashedNewPassword;
+  await user.save();
+
+  return { message: "Password changed successfully" };
+};

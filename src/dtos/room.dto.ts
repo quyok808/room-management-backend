@@ -43,7 +43,33 @@ export class UpdateRoomDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  electricityUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  waterUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  internetFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  parkingFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  serviceFee?: number;
 
   @IsOptional()
   @IsEnum(ROOMSTATUS)

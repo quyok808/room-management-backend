@@ -4,6 +4,14 @@ import roomModel from "../models/room.model";
 
 interface CreateBuildingInput extends CreateBuildingDto {
   ownerId: string; // owner user id from auth
+  // Default prices for rooms
+  defaultRoomPrice?: number;
+  defaultElectricityUnitPrice?: number;
+  defaultWaterUnitPrice?: number;
+  defaultInternetFee?: number;
+  defaultParkingFee?: number;
+  defaultServiceFee?: number;
+  area?: number;
 }
 
 export const createBuilding = async (
@@ -18,8 +26,16 @@ export const createBuilding = async (
       number: `${data.name}_room${i}`,
       buildingId: building._id,
       floor: Math.ceil(i / 10), // Default: 10 rooms per floor
-      area: 25, // Default area
-      price: 3000000, // Default price
+      area: data.area , // Default area
+      
+      // Giá mặc định từ frontend
+      price: data.defaultRoomPrice ,
+      electricityUnitPrice: data.defaultElectricityUnitPrice ,
+      waterUnitPrice: data.defaultWaterUnitPrice ,
+      internetFee: data.defaultInternetFee ,
+      parkingFee: data.defaultParkingFee ,
+      serviceFee: data.defaultServiceFee ,
+      
       status: "available",
       description: `Room ${i} in ${data.name}`,
     });
@@ -153,6 +169,16 @@ export const updateBuilding = async (
   data: UpdateBuildingDto,
   ownerId: string,
 ): Promise<IBuilding | null> => {
+  // Check if building has any occupied rooms
+  const occupiedRoomsCount = await roomModel.countDocuments({
+    buildingId: buildingId,
+    currentTenant: { $exists: true, $ne: null },
+  });
+
+  if (occupiedRoomsCount > 0) {
+    throw new Error("Cannot update building with occupied rooms");
+  }
+
   const building = await Building.findOneAndUpdate(
     { _id: buildingId, ownerId: ownerId },
     data,
@@ -165,6 +191,19 @@ export const deleteBuilding = async (
   buildingId: string,
   ownerId: string,
 ): Promise<IBuilding | null> => {
+  // Check if building has any occupied rooms
+  const occupiedRoomsCount = await roomModel.countDocuments({
+    buildingId: buildingId,
+    currentTenant: { $exists: true, $ne: null },
+  });
+
+  if (occupiedRoomsCount > 0) {
+    throw new Error("Cannot delete building with occupied rooms");
+  }
+
+  // Delete all rooms in the building
+  await roomModel.deleteMany({ buildingId: buildingId });
+
   const building = await Building.findOneAndDelete({
     _id: buildingId,
     ownerId: ownerId,

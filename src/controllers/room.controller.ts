@@ -6,7 +6,8 @@ import {
   removeTenant,
   getAllRooms,
   getRoomById,
-  getOccupiedRooms
+  getOccupiedRooms,
+  getRoomByUserId,
 } from "../services/room.service";
 import { ROLE } from "../utils/app.constants";
 import { getBuildingById } from "../services/building.service";
@@ -204,7 +205,10 @@ export const getRoomByIdController = async (req: Request, res: Response) => {
   }
 };
 
-export const getOccupiedRoomsController = async (req: Request, res: Response) => {
+export const getOccupiedRoomsController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const currentUser = (req as any).user;
     const { buildingId, floor, page, limit } = req.query;
@@ -222,6 +226,31 @@ export const getOccupiedRoomsController = async (req: Request, res: Response) =>
     const result = await getOccupiedRooms(searchParams, pagination);
 
     return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getRoomByUserIdController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { userId } = req.params;
+    const room = await getRoomByUserId(userId as string);
+
+    if (!room) {
+      return res.status(404).json({
+        message: "Room not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Room retrieved successfully",
+      room: room,
+    });
   } catch (error: any) {
     return res.status(400).json({
       message: error.message,

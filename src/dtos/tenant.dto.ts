@@ -30,3 +30,30 @@ export class CreateTenantDto {
   @IsString()
   emergencyContact?: string;
 }
+
+export class UpdateTenantDto {
+  @IsOptional()
+  @IsDateString()
+  contractEndDate?: string;
+
+  @IsOptional()
+  @IsEnum(TenantStatus)
+  status?: TenantStatus;
+
+  @IsOptional()
+  @IsString()
+  emergencyContact?: string;
+
+  // User synchronization fields
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  cccd?: string;
+}

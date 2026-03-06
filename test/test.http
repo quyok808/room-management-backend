@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3000
 @tenant_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRjOTNhYmJmMmM2YWI2ODFiYzBjZSIsInJvbGUiOjAsImlhdCI6MTc3MDk4MDc2MywiZXhwIjoxNzcxNTg1NTYzfQ.W-k_X0sbUVPe8Tbhtq4WUNOqTznCbgVvWQVGeRl6jWo
-@owner_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRhNjFmNDBlNDJlMWRiOWJhN2EyZCIsInJvbGUiOjEsImlhdCI6MTc3MTg1NDA5OCwiZXhwIjoxNzcyNDU4ODk4fQ.81cxa0IYFozBnHcF5W6xzzUFpfeH8xbyFwP8vXsjP_E
+@owner_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRhNjFmNDBlNDJlMWRiOWJhN2EyZCIsInJvbGUiOjEsImlhdCI6MTc3MjQ2NDQ4NSwiZXhwIjoxNzczMDY5Mjg1fQ.ndUBfc3XO1pzrxFAQaL0hjRf5B0dhU4g4DKKVMmfBMM
 
 #######################################
 ### 2️⃣ LOGIN TENANT
@@ -36,6 +36,68 @@ Content-Type: application/json
 ### Logout
 POST {{baseUrl}}/api/auth/logout
 Authorization: Bearer {{owner_token}}
+
+#######################################
+### 4️⃣ CHANGE PASSWORD
+#######################################
+
+### Change password (SUCCESS - TENANT)
+PUT {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{tenant_token}}
+Content-Type: application/json
+
+{
+  "oldPassword": "0987654321",
+  "newPassword": "newpassword123"
+}
+
+###
+# EXPECT: 200 OK
+# Response: {"message": "Password changed successfully"}
+###
+
+### Change password (SUCCESS - OWNER)
+PUT {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "oldPassword": "123456",
+  "newPassword": "newownerpassword123"
+}
+
+###
+# EXPECT: 200 OK
+# Response: {"message": "Password changed successfully"}
+###
+
+### Change password (WRONG OLD PASSWORD - ERROR)
+PUT {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{tenant_token}}
+Content-Type: application/json
+
+{
+  "oldPassword": "wrongpassword",
+  "newPassword": "newpassword123"
+}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Old password is incorrect"}
+###
+
+### Change password (WITHOUT AUTH - FAIL)
+PUT {{baseUrl}}/api/auth/change-password
+Content-Type: application/json
+
+{
+  "oldPassword": "0987654321",
+  "newPassword": "newpassword123"
+}
+
+###
+# EXPECT: 401 Unauthorized
+###
 
 #######################################
 ### 7️⃣ TEST GET USER BY ID
@@ -191,7 +253,14 @@ Content-Type: application/json
   "totalRooms": 20,
   "yearBuilt": 2019,
   "description": "Toà nhà phù hợp cho sinh viên và nhân viên văn phòng",
-  "utilities": ["Parking", "WiFi", "Laundry Room"]
+  "utilities": ["Parking", "WiFi", "Laundry Room"],
+  "defaultRoomPrice": 3500000,
+  "defaultElectricityUnitPrice": 3500,
+  "defaultWaterUnitPrice": 18000,
+  "defaultInternetFee": 250000,
+  "defaultParkingFee": 200000,
+  "defaultServiceFee": 150000,
+  "area": 30
 }
 
 ###
@@ -296,7 +365,7 @@ Content-Type: application/json
 ###
 
 ### Delete building (SUCCESS - OWNER)
-DELETE {{baseUrl}}/api/buildings/698ed98d24f5a32a41e3fde4
+DELETE {{baseUrl}}/api/buildings/69a5ab2457c629035c065960
 Authorization: Bearer {{owner_token}}
 
 ###
@@ -683,29 +752,22 @@ Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 
 {
-  "tenantId": "698dc93abb72c6ab681bc0ce",
-  "roomId": "69981d9e46c8af57f060929c",
+  "tenantId": "69a3fa9aa2124fac95dfe52c",
+  "roomId": "69a3f9dca2124fac95dfe514",
   "month": "2024-02",
-  "roomFee": 2500000,
-  "electricityUnitPrice": 3000,
   "electricityPrevious": 1000,
   "electricityCurrent": 1050,
-  "electricityAmount": 150000,
-  "waterUnitPrice": 15000,
   "waterPrevious": 50,
   "waterCurrent": 55,
-  "waterAmount": 75000,
-  "internetFee": 200000,
-  "parkingFee": 150000,
-  "serviceFee": 100000,
-  "amount": 3175000,
-  "dueDate": "2024-02-28",
+  "otherFee": 50000,
+  "dueDate": "2024-02-28T00:00:00.000Z",
+  "status": "pending",
   "notes": "Tiền phòng tháng 2/2024"
 }
 
 ###
 # EXPECT: 201 Created
-# Response sẽ có payment data mới
+# Response sẽ có payment data mới với amount được tính tự động từ meter readings và room pricing
 ###
 
 ### Get all payments (SUCCESS - OWNER)
@@ -768,9 +830,11 @@ Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 
 {
-  "roomFee": 2600000,
-  "electricityUnitPrice": 3200,
-  "internetFee": 250000,
+  "electricityPrevious": 990,
+  "electricityCurrent": 1060,
+  "waterPrevious": 45,
+  "waterCurrent": 58,
+  "otherFee": 60000,
   "notes": "Tiền phòng tháng 2/2024 (cập nhật)"
 }
 
@@ -785,8 +849,10 @@ Authorization: Bearer {{tenant_token}}
 Content-Type: application/json
 
 {
-  "roomFee": 2600000,
-  "electricityUnitPrice": 3200
+  "electricityPrevious": 990,
+  "electricityCurrent": 1060,
+  "waterPrevious": 45,
+  "waterCurrent": 58
 }
 
 ###
@@ -839,20 +905,15 @@ Content-Type: application/json
   "tenantId": "698dc93abb72c6ab681bc0ce",
   "roomId": "69981d9e46c8af57f060929c",
   "month": "2024-02",
-  "roomFee": 2500000,
-  "electricityUnitPrice": 3000,
   "electricityPrevious": 1000,
   "electricityCurrent": 1050,
   "electricityAmount": 150000,
-  "waterUnitPrice": 15000,
   "waterPrevious": 50,
   "waterCurrent": 55,
   "waterAmount": 75000,
-  "internetFee": 200000,
-  "parkingFee": 150000,
-  "serviceFee": 100000,
+  "otherFee": 50000,
   "amount": 3175000,
-  "dueDate": "2024-02-28"
+  "dueDate": "2024-02-28T00:00:00.000Z"
 }
 
 ###
@@ -927,6 +988,65 @@ Authorization: Bearer {{tenant_token}}
 
 ### Get occupied rooms (WITHOUT AUTH - FAIL)
 GET {{baseUrl}}/api/rooms/occupied
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+#######################################
+### 1️⃣4️⃣ TEST GET TENANT BY ID API
+#######################################
+
+### Get tenant by ID (SUCCESS - OWNER)
+GET {{baseUrl}}/api/tenants/698dc93abb72c6ab681bc0ce
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response sẽ có thông tin chi tiết của tenant với user và room info
+###
+
+### Get tenant by ID (SUCCESS - OWNER - WITH POPULATED DATA)
+GET {{baseUrl}}/api/tenants/698dc93abb72c6ab681bc0ce
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response sẽ có:
+# - userId: { name, email, phone, cccdImages }
+# - roomId: { number, floor, buildingId: { name, address } }
+# - status, moveInDate, contractEndDate, emergencyContact
+###
+
+### Get tenant by ID (TENANT - FORBIDDEN)
+GET {{baseUrl}}/api/tenants/698dc93abb72c6ab681bc0ce
+Authorization: Bearer {{tenant_token}}
+
+###
+# EXPECT: 403 Forbidden
+# Chỉ OWNER mới có thể xem chi tiết tenant
+###
+
+### Get tenant by ID (INVALID ID - ERROR)
+GET {{baseUrl}}/api/tenants/invalid-id
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Invalid tenant id"}
+###
+
+### Get tenant by ID (NOT FOUND - ERROR)
+GET {{baseUrl}}/api/tenants/507f1f77bcf86cd799439011
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 404 Not Found
+# Response: {"message": "Tenant not found"}
+###
+
+### Get tenant by ID (WITHOUT AUTH - FAIL)
+GET {{baseUrl}}/api/tenants/698dc93abb72c6ab681bc0ce
 
 ###
 # EXPECT: 401 Unauthorized

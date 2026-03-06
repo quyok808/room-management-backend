@@ -30,6 +30,35 @@ export class CreateBuildingDto {
   @IsOptional()
   @IsArray()
   utilities?: string[];
+
+  // Default prices for rooms
+  @IsOptional()
+  @IsNumber()
+  defaultRoomPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultElectricityUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultWaterUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultInternetFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultParkingFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultServiceFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  area?: number;
 }
 
 export class UpdateBuildingDto {
@@ -69,4 +98,33 @@ export class UpdateBuildingDto {
   @IsArray()
   @IsString({ each: true })
   utilities?: string[];
+
+  // Default prices for rooms
+  @IsOptional()
+  @IsNumber()
+  defaultRoomPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultElectricityUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultWaterUnitPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultInternetFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultParkingFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultServiceFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  area?: number;
 }

@@ -41,3 +41,14 @@ export const logout = async (req: Request, res: Response) => {
   }
 }
 
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = (req as any).user.id; // Assuming auth middleware sets req.user
+    const result = await AuthService.changePassword(userId, oldPassword, newPassword);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+}
+

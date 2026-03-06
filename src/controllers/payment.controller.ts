@@ -1,5 +1,13 @@
 import { Request, Response } from "express";
-import { createPayment, getPayments, getPaymentById, updatePayment, markAsPaid, deletePayment } from "../services/payment.service";
+import {
+  createPayment,
+  getPayments,
+  getPaymentById,
+  updatePayment,
+  markAsPaid,
+  deletePayment,
+  getPaymentByUserId,
+} from "../services/payment.service";
 import { ROLE } from "../utils/app.constants";
 
 interface AuthenticatedRequest extends Request {
@@ -41,19 +49,22 @@ export const createPaymentController = async (req: Request, res: Response) => {
 // ===============================
 export const getPaymentsController = async (req: Request, res: Response) => {
   try {
-    const { status, month, tenantId } = req.query;
+    const { status, month, tenantId, page, limit } = req.query;
 
     const params: any = {};
     if (status) params.status = status;
     if (month) params.month = month;
     if (tenantId) params.tenantId = tenantId;
+    if (page) params.page = parseInt(page as string);
+    if (limit) params.limit = parseInt(limit as string);
 
-    const result = await getPayments(params, (req as any).user.role, (req as any).user.id);
+    const result = await getPayments(
+      params,
+      (req as any).user.role,
+      (req as any).user.id,
+    );
 
-    return res.status(200).json({
-      count: result.count,
-      data: result.payments,
-    });
+    return res.status(200).json(result);
   } catch (error: any) {
     return res.status(500).json({
       message: error.message || "Failed to fetch payments",
@@ -74,7 +85,34 @@ export const getPaymentByIdController = async (req: Request, res: Response) => {
       });
     }
 
-    const payment = await getPaymentById(id, (req as any).user.role, (req as any).user.id);
+    const payment = await getPaymentById(
+      id,
+      (req as any).user.role,
+      (req as any).user.id,
+    );
+
+    return res.status(200).json(payment);
+  } catch (error: any) {
+    return res.status(error.message === "Payment not found" ? 404 : 500).json({
+      message: error.message || "Failed to fetch payment",
+    });
+  }
+};
+
+export const getPaymentByUserIdController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({
+        message: "Invalid user id",
+      });
+    }
+
+    const payment = await getPaymentByUserId(userId);
 
     return res.status(200).json(payment);
   } catch (error: any) {
@@ -129,7 +167,11 @@ export const markAsPaidController = async (req: Request, res: Response) => {
       });
     }
 
-    const payment = await markAsPaid(id, (req as any).user.role, (req as any).user.id);
+    const payment = await markAsPaid(
+      id,
+      (req as any).user.role,
+      (req as any).user.id,
+    );
 
     return res.status(200).json({
       message: "Payment successful",

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllTenants } from "../services/tenant.service";
+import { getAllTenants, getTenantById, updateTenant } from "../services/tenant.service";
 import { TenantStatus } from "../utils/app.constants";
 
 export const getAllTenantsController = async (req: Request, res: Response) => {
@@ -45,6 +45,64 @@ export const getAllTenantsController = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getTenantByIdController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        message: "Invalid tenant id",
+      });
+    }
+
+    const tenant = await getTenantById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        message: "Tenant not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Tenant retrieved successfully",
+      data: tenant,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const updateTenantController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        message: "Invalid tenant id",
+      });
+    }
+
+    const tenant = await updateTenant(id, req.body);
+
+    if (!tenant) {
+      return res.status(404).json({
+        message: "Tenant not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Tenant updated successfully",
+      data: tenant,
+    });
+  } catch (error: any) {
+    return res.status(error.message === "Tenant not found" ? 404 : 400).json({
       message: error.message,
     });
   }
