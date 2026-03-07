@@ -123,7 +123,9 @@ export const getAllRooms = async (
     limit?: number;
   },
 ) => {
-  let query: any = {};
+  let query: any = {
+    isDeleted: false,
+  };
 
   if (searchParams?.number) {
     query.number = { $regex: searchParams.number, $options: "i" };
@@ -169,7 +171,7 @@ export const getAllRooms = async (
 };
 
 export const getRoomById = async (roomId: string): Promise<IRoom | null> => {
-  const room = await Room.findById(roomId)
+  const room = await Room.findOne({ _id: roomId, isDeleted: false })
     .populate("buildingId", "name")
     .populate("currentTenant", "name email");
   return room;
@@ -192,6 +194,7 @@ export const getOccupiedRooms = async (
     currentTenant: { $exists: true, $ne: null }, // Only rooms with current tenant
     status: ROOMSTATUS.OCCUPIED,
     _id: { $nin: roomsWithPayments }, // Exclude rooms that have payments
+    isDeleted: false,
   };
 
   // Filter by buildingId
@@ -232,5 +235,5 @@ export const getOccupiedRooms = async (
 };
 
 export const getRoomByUserId = (userId: string) => {
-  return Room.findOne({ currentTenant: userId }).populate("buildingId", "name");
+  return Room.findOne({ currentTenant: userId, isDeleted: false }).populate("buildingId", "name");
 };

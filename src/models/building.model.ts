@@ -11,6 +11,7 @@ export interface IBuilding extends Document {
   ownerId: Types.ObjectId; 
   description?: string;
   utilities?: string[];
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const buildingSchema = new Schema<IBuilding>(
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     description: { type: String, default: "" },
     utilities: { type: [String], default: [] },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
