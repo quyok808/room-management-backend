@@ -58,7 +58,7 @@ export const getBuildingById = async (
 export const getBuildingsByOwner = async (
   ownerId: string,
 ): Promise<IBuilding[]> => {
-  const buildings = await Building.find({ ownerId: ownerId });
+  const buildings = await Building.find({ ownerId: ownerId, isDeleted: false });
   return buildings;
 };
 
@@ -74,7 +74,9 @@ export const getAllBuildings = async (
     limit?: number;
   },
 ) => {
-  let query: any = {};
+  let query: any = {
+    isDeleted: false,
+  };
 
   if (searchParams?.name) {
     query.name = { $regex: searchParams.name, $options: "i" };
@@ -201,12 +203,14 @@ export const deleteBuilding = async (
     throw new Error("Cannot delete building with occupied rooms");
   }
 
-  // Delete all rooms in the building
-  await roomModel.deleteMany({ buildingId: buildingId });
+  const building = await Building.findOneAndUpdate(
+    { _id: buildingId, ownerId: ownerId },
+    { isDeleted: true },
+    { new: true },
+  );
 
-  const building = await Building.findOneAndDelete({
-    _id: buildingId,
-    ownerId: ownerId,
-  });
+  // Soft delete all rooms in the building
+  await roomModel.updateMany({ buildingId: buildingId }, { isDeleted: true });
+
   return building;
 };

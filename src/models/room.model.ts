@@ -19,6 +19,7 @@ export interface IRoom extends Document {
   status: ROOMSTATUS;
   currentTenant?: Types.ObjectId;
   description?: string;
+  isDeleted: boolean;
 }
 
 const roomSchema = new Schema<IRoom>(
@@ -46,6 +47,7 @@ const roomSchema = new Schema<IRoom>(
 
     currentTenant: { type: Schema.Types.ObjectId, ref: "User" },
     description: String,
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
