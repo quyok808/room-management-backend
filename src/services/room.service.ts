@@ -5,6 +5,7 @@ import { getBuildingById } from "./building.service";
 import { ROOMSTATUS, TenantStatus } from "../utils/app.constants";
 import { Types } from "mongoose";
 import Tenant from "../models/tenant.model";
+import Payment from "../models/payment.model";
 
 export const updateRoom = async (
   roomId: string,
@@ -184,9 +185,13 @@ export const getOccupiedRooms = async (
     limit?: number;
   },
 ) => {
+  // Get room IDs that already have payments
+  const roomsWithPayments = await Payment.distinct('roomId');
+
   let query: any = {
     currentTenant: { $exists: true, $ne: null }, // Only rooms with current tenant
     status: ROOMSTATUS.OCCUPIED,
+    _id: { $nin: roomsWithPayments }, // Exclude rooms that have payments
   };
 
   // Filter by buildingId
