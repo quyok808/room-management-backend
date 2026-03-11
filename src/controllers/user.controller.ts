@@ -203,8 +203,6 @@ export const updateUserController = async (req: Request, res: Response) => {
 
     const updatedUser = await updateUser(id, updateData);
 
-    // const updatedUser = await updateUser(id, { ...req.body, ...cccdImages });
-
     if (!updatedUser) {
       return res.status(404).json({
         message: "User not found",
