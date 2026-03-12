@@ -158,10 +158,18 @@ export const updateUser = async (
     }
   }
 
+  const cleanUpdateData = Object.fromEntries(
+    Object.entries(updateData).filter(([_, v]) => v !== undefined),
+  );
+
   // Update user
-  const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-    new: true,
-  });
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: cleanUpdateData },
+    {
+      new: true,
+    },
+  );
   return updatedUser;
 };
 
@@ -177,7 +185,9 @@ export const getNonTenantUsers = async (
   },
 ) => {
   // Get all users that do not have any active tenant record (inactive tenants are included)
-  const activeTenantUserIds = await Tenant.distinct("userId", { status: "active" });
+  const activeTenantUserIds = await Tenant.distinct("userId", {
+    status: "active",
+  });
 
   let query: any = {
     _id: { $nin: activeTenantUserIds }, // Exclude users who have active tenant record
