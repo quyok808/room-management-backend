@@ -35,8 +35,21 @@ export const createPayment = async (data: CreatePaymentInput) => {
   // Calculate electricity and water amounts
   const electricityUsage = data.electricityCurrent - data.electricityPrevious;
   const electricityAmount = electricityUsage * room.electricityUnitPrice;
+  
+  // Calculate water amount based on room pricing strategy
+  let waterAmount = 0;
   const waterUsage = data.waterCurrent - data.waterPrevious;
-  const waterAmount = waterUsage * room.waterUnitPrice;
+  
+  if (room.waterPricePerPerson && room.waterPricePerPerson > 0) {
+    // Fixed price per person (assume 1 person per room)
+    waterAmount = room.waterPricePerPerson;
+  } else if (room.waterPricePerCubicMeter && room.waterPricePerCubicMeter > 0) {
+    // Price per cubic meter
+    waterAmount = waterUsage * room.waterPricePerCubicMeter;
+  } else {
+    // No water pricing configured
+    waterAmount = 0;
+  }
 
   // Calculate total amount
   const totalAmount =

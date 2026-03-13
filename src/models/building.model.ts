@@ -5,9 +5,7 @@ export interface IBuilding extends Document {
   address: string;
   district: string;
   city: string;
-  totalFloors: number;
   totalRooms: number;
-  yearBuilt?: number;
   ownerId: Types.ObjectId; 
   description?: string;
   utilities?: string[];
@@ -22,9 +20,7 @@ const buildingSchema = new Schema<IBuilding>(
     address: { type: String, required: true },
     district: { type: String, required: true },
     city: { type: String, required: true },
-    totalFloors: { type: Number, required: true },
     totalRooms: { type: Number, required: true },
-    yearBuilt: { type: Number, required: false },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     description: { type: String, default: "" },
     utilities: { type: [String], default: [] },
