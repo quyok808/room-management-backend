@@ -2,44 +2,54 @@ import Building, { IBuilding } from "../models/building.model";
 import { CreateBuildingDto, UpdateBuildingDto } from "../dtos/building.dto";
 import roomModel from "../models/room.model";
 
-interface CreateBuildingInput extends CreateBuildingDto {
-  ownerId: string; // owner user id from auth
-  // Default prices for rooms
-  defaultRoomPrice?: number;
-  defaultElectricityUnitPrice?: number;
-  defaultWaterUnitPrice?: number;
-  defaultInternetFee?: number;
-  defaultParkingFee?: number;
-  defaultServiceFee?: number;
+interface CreateBuildingInput {
+  name: string;
+  address: string;
+  district: string;
+  city: string;
+  totalRooms: number;
+  ownerId: string;
+  description?: string;
+  utilities?: string[];
   area?: number;
+  rooms: {
+    number: string;
+    area: number;
+    price: number;
+    electricityUnitPrice: number;
+    waterUnitPrice: number;
+    waterPricePerPerson?: number;
+    waterPricePerCubicMeter?: number;
+    internetFee?: number;
+    parkingFee?: number;
+    serviceFee?: number;
+    description?: string;
+  }[];
 }
 
 export const createBuilding = async (
   data: CreateBuildingInput,
 ): Promise<IBuilding> => {
-  const building = await Building.create(data);
+  const buildingData: any = {
+    name: data.name,
+    address: data.address,
+    district: data.district,
+    city: data.city,
+    totalRooms: data.totalRooms,
+    ownerId: data.ownerId,
+  };
 
-  // Automatically create rooms based on totalRooms
-  const rooms = [];
-  for (let i = 1; i <= data.totalRooms; i++) {
-    rooms.push({
-      number: `${data.name}_room${i}`,
-      buildingId: building._id,
-      floor: Math.ceil(i / 10), // Default: 10 rooms per floor
-      area: data.area , // Default area
-      
-      // Giá mặc định từ frontend
-      price: data.defaultRoomPrice ,
-      electricityUnitPrice: data.defaultElectricityUnitPrice ,
-      waterUnitPrice: data.defaultWaterUnitPrice ,
-      internetFee: data.defaultInternetFee ,
-      parkingFee: data.defaultParkingFee ,
-      serviceFee: data.defaultServiceFee ,
-      
-      status: "available",
-      description: `Room ${i} in ${data.name}`,
-    });
-  }
+  if (data.description !== undefined) buildingData.description = data.description;
+  if (data.utilities !== undefined) buildingData.utilities = data.utilities;
+
+  const building = await Building.create(buildingData);
+
+  // Create rooms from frontend data
+  const rooms = data.rooms.map(room => ({
+    ...room,
+    buildingId: building._id,
+    status: "available",
+  }));
 
   if (rooms.length > 0) {
     await roomModel.insertMany(rooms);

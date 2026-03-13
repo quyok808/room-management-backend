@@ -1,5 +1,12 @@
 import { Request, Response } from "express";
-import { UserService, getUserById, getAllUsers, deleteUser, updateUser, getNonTenantUsers } from "../services/user.service";
+import {
+  UserService,
+  getUserById,
+  getAllUsers,
+  deleteUser,
+  updateUser,
+  getNonTenantUsers,
+} from "../services/user.service";
 import { ROLE } from "../utils/app.constants";
 
 export const createUser = async (req: Request, res: Response) => {
@@ -178,27 +185,23 @@ export const updateUserController = async (req: Request, res: Response) => {
     const frontFile = files?.cccdFront?.[0];
     const backFile = files?.cccdBack?.[0];
 
+    const updateData: any = { ...req.body };
+
     if (frontFile) {
-      cccdImages.cccdImages = {
-        ...cccdImages.cccdImages,
-        front: {
-          url: frontFile.path,
-          publicId: frontFile.filename
-        }
+      updateData["cccdImages.front"] = {
+        url: frontFile.path,
+        publicId: frontFile.filename,
       };
     }
 
     if (backFile) {
-      cccdImages.cccdImages = {
-        ...cccdImages.cccdImages,
-        back: {
-          url: backFile.path,
-          publicId: backFile.filename
-        }
+      updateData["cccdImages.back"] = {
+        url: backFile.path,
+        publicId: backFile.filename,
       };
     }
 
-    const updatedUser = await updateUser(id, { ...req.body, ...cccdImages });
+    const updatedUser = await updateUser(id, updateData);
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -219,7 +222,10 @@ export const updateUserController = async (req: Request, res: Response) => {
   }
 };
 
-export const getNonTenantUsersController = async (req: Request, res: Response) => {
+export const getNonTenantUsersController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { email, name, phone, page, limit } = req.query;
 

@@ -249,18 +249,43 @@ Content-Type: application/json
   "address": "789 Lê Văn Việt",
   "district": "Quận 9",
   "city": "TP.HCM",
-  "totalFloors": 5,
-  "totalRooms": 20,
-  "yearBuilt": 2019,
+  "totalRooms": 3,
   "description": "Toà nhà phù hợp cho sinh viên và nhân viên văn phòng",
   "utilities": ["Parking", "WiFi", "Laundry Room"],
-  "defaultRoomPrice": 3500000,
-  "defaultElectricityUnitPrice": 3500,
-  "defaultWaterUnitPrice": 18000,
-  "defaultInternetFee": 250000,
-  "defaultParkingFee": 200000,
-  "defaultServiceFee": 150000,
-  "area": 30
+  "rooms": [
+    {
+      "number": "101",
+      "area": 30,
+      "price": 3500000,
+      "electricityUnitPrice": 3500,
+      "waterPricePerPerson": 50000,
+      "internetFee": 250000,
+      "parkingFee": 200000,
+      "serviceFee": 150000,
+      "description": "Phòng 101"
+    },
+    {
+      "number": "102",
+      "area": 30,
+      "price": 3500000,
+      "electricityUnitPrice": 3500,
+      "waterPricePerCubicMeter": 18000,
+      "internetFee": 250000,
+      "parkingFee": 200000,
+      "serviceFee": 150000,
+      "description": "Phòng 102"
+    },
+    {
+      "number": "103",
+      "area": 30,
+      "price": 3500000,
+      "electricityUnitPrice": 3500,
+      "internetFee": 250000,
+      "parkingFee": 200000,
+      "serviceFee": 150000,
+      "description": "Phòng 103"
+    }
+  ]
 }
 
 ###

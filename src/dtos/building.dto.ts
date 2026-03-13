@@ -1,4 +1,43 @@
-import { IsString, IsNumber, IsEmail, IsOptional, IsArray } from "class-validator";
+import { IsString, IsNumber, IsEmail, IsOptional, IsArray, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
+
+class CreateRoomDto {
+  @IsString()
+  number!: string;
+
+  @IsNumber()
+  area!: number;
+
+  @IsNumber()
+  price!: number;
+
+  @IsNumber()
+  electricityUnitPrice!: number;
+
+  @IsOptional()
+  @IsNumber()
+  waterPricePerPerson?: number;
+
+  @IsOptional()
+  @IsNumber()
+  waterPricePerCubicMeter?: number;
+
+  @IsOptional()
+  @IsNumber()
+  internetFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  parkingFee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  serviceFee?: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
 
 export class CreateBuildingDto {
   @IsString()
@@ -13,15 +52,8 @@ export class CreateBuildingDto {
   @IsString()
   city!: string;
 
-  @IsNumber()
-  totalFloors!: number;
 
-  @IsNumber()
-  totalRooms!: number;
 
-  @IsOptional()
-  @IsNumber()
-  yearBuilt?: number;
 
   @IsOptional()
   @IsString()
@@ -31,34 +63,10 @@ export class CreateBuildingDto {
   @IsArray()
   utilities?: string[];
 
-  // Default prices for rooms
-  @IsOptional()
-  @IsNumber()
-  defaultRoomPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultElectricityUnitPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultWaterUnitPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultInternetFee?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultParkingFee?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultServiceFee?: number;
-
-  @IsOptional()
-  @IsNumber()
-  area?: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateRoomDto)
+  rooms!: CreateRoomDto[];
 }
 
 export class UpdateBuildingDto {
