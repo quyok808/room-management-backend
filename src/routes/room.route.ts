@@ -8,6 +8,7 @@ import {
   getRoomByIdController,
   getOccupiedRoomsController,
   getRoomByUserIdController,
+  getRoomsWithMeterReadingsController,
 } from "../controllers/room.controller";
 import { validateDto } from "../middlewares/validate.middleware";
 import { UpdateRoomDto, AssignTenantDto } from "../dtos/room.dto";
@@ -59,6 +60,13 @@ router.get(
   authMiddleware,
   requireRole([ROLE.OWNER]),
   getOccupiedRoomsController,
+);
+
+router.get(
+  "/meter-reading",
+  authMiddleware,
+  requireRole([ROLE.OWNER]),
+  getRoomsWithMeterReadingsController,
 );
 
 router.get(

@@ -8,6 +8,7 @@ import buildingRoutes from "./routes/building.route";
 import roomRoutes from "./routes/room.route";
 import tenantRoutes from "./routes/tenant.route";
 import paymentRoutes from "./routes/payment.route";
+import meterReadingRoutes from "./routes/meterReading.route";
 
 const app = express();
 
@@ -25,5 +26,6 @@ app.use("/api/buildings", buildingRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/tenants", tenantRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/meter-readings", meterReadingRoutes);
 
 export default app;

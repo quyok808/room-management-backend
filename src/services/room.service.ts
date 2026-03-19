@@ -6,6 +6,7 @@ import { ROOMSTATUS, TenantStatus } from "../utils/app.constants";
 import { Types } from "mongoose";
 import Tenant from "../models/tenant.model";
 import Payment from "../models/payment.model";
+import MeterReading from "../models/MeterReading.model";
 
 export const updateRoom = async (
   roomId: string,
@@ -236,4 +237,157 @@ export const getOccupiedRooms = async (
 
 export const getRoomByUserId = (userId: string) => {
   return Room.findOne({ currentTenant: userId, isDeleted: false }).populate("buildingId", "name");
+};
+
+export const getRoomsWithMeterReadings = async (
+  month: number,
+  year: number,
+  searchParams?: {
+    buildingId?: string;
+    floor?: number;
+  },
+  pagination?: {
+    page?: number;
+    limit?: number;
+  },
+) => {
+  const page = Math.max(1, pagination?.page || 1);
+  const limit = Math.min(100, Math.max(1, pagination?.limit || 10));
+  const skip = (page - 1) * limit;
+
+  let matchStage: any = {
+    isDeleted: false,
+  };
+
+  if (searchParams?.buildingId) {
+    matchStage.buildingId = new Types.ObjectId(searchParams.buildingId);
+  }
+
+  if (searchParams?.floor !== undefined) {
+    matchStage.floor = searchParams.floor;
+  }
+
+  const rooms = await Room.aggregate([
+    {
+      $match: matchStage,
+    },
+    {
+      $lookup: {
+        from: "buildings",
+        localField: "buildingId",
+        foreignField: "_id",
+        as: "building",
+      },
+    },
+    {
+      $unwind: {
+        path: "$building",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "currentTenant",
+        foreignField: "_id",
+        as: "tenant",
+      },
+    },
+    {
+      $unwind: {
+        path: "$tenant",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "meterreadings",
+        let: {
+          roomId: "$_id",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$roomId", "$$roomId"] },
+                  { $eq: ["$month", month] },
+                  { $eq: ["$year", year] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "meterReading",
+      },
+    },
+    {
+      $unwind: {
+        path: "$meterReading",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        number: 1,
+        area: 1,
+        price: 1,
+        electricityUnitPrice: 1,
+        waterPricePerPerson: 1,
+        waterPricePerCubicMeter: 1,
+        internetFee: 1,
+        parkingFee: 1,
+        serviceFee: 1,
+        status: 1,
+        description: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        building: {
+          _id: 1,
+          name: 1,
+          address: 1,
+        },
+        tenant: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          phone: 1,
+        },
+        meterReading: {
+          _id: 1,
+          month: 1,
+          year: 1,
+          electricityReading: 1,
+          waterReading: 1,
+          createdAt: 1,
+        },
+      },
+    },
+    {
+      $sort: { "building.name": 1, number: 1 },
+    },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
+
+  const result = rooms[0];
+  const total = result.totalCount[0]?.count || 0;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    rooms: result.data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  };
 };

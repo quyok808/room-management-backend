@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3000
 @tenant_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRjOTNhYmJmMmM2YWI2ODFiYzBjZSIsInJvbGUiOjAsImlhdCI6MTc3MDk4MDc2MywiZXhwIjoxNzcxNTg1NTYzfQ.W-k_X0sbUVPe8Tbhtq4WUNOqTznCbgVvWQVGeRl6jWo
-@owner_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRhNjFmNDBlNDJlMWRiOWJhN2EyZCIsInJvbGUiOjEsImlhdCI6MTc3MjQ2NDQ4NSwiZXhwIjoxNzczMDY5Mjg1fQ.ndUBfc3XO1pzrxFAQaL0hjRf5B0dhU4g4DKKVMmfBMM
+@owner_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGRhNjFmNDBlNDJlMWRiOWJhN2EyZCIsInJvbGUiOjEsImlhdCI6MTc3MzI5Mzc0MiwiZXhwIjoxNzczODk4NTQyfQ.eL7V3gU8KHqQ3TauauYBuAMBZX16wecS5252TGf1Z1Y
 
 #######################################
 ### 2️⃣ LOGIN TENANT
@@ -1075,4 +1075,453 @@ GET {{baseUrl}}/api/tenants/698dc93abb72c6ab681bc0ce
 
 ###
 # EXPECT: 401 Unauthorized
+###
+
+#######################################
+### 1️⃣5️⃣ TEST METER READING API
+#######################################
+
+### Create meter reading (SUCCESS - OWNER)
+POST {{baseUrl}}/api/meter-readings
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "roomId": "698da61f40e42e1db9ba7a2d",
+  "month": 3,
+  "year": 2025,
+  "electricityReading": 150.5,
+  "waterReading": 200.0
+}
+
+###
+# EXPECT: 201 Created
+# Response will have the created meter reading with id, roomId, month, year, electricityReading, waterReading, createdAt, updatedAt
+###
+
+### Create meter reading (TENANT - FORBIDDEN)
+POST {{baseUrl}}/api/meter-readings
+Authorization: Bearer {{tenant_token}}
+Content-Type: application/json
+
+{
+  "roomId": "698da61f40e42e1db9ba7a2d",
+  "month": 3,
+  "year": 2025,
+  "electricityReading": 150.5,
+  "waterReading": 200.0
+}
+
+###
+# EXPECT: 403 Forbidden
+# Only OWNER can create meter readings
+###
+
+### Create meter reading (WITHOUT AUTH - FAIL)
+POST {{baseUrl}}/api/meter-readings
+Content-Type: application/json
+
+{
+  "roomId": "698da61f40e42e1db9ba7a2d",
+  "month": 3,
+  "year": 2025,
+  "electricityReading": 150.5,
+  "waterReading": 200.0
+}
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Get all meter readings (SUCCESS - OWNER)
+GET {{baseUrl}}/api/meter-readings
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have list of meter readings with pagination
+###
+
+### Get meter readings with filters (SUCCESS - OWNER)
+GET {{baseUrl}}/api/meter-readings?month=3&year=2025&roomId=698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have filtered meter readings
+###
+
+### Get meter readings (TENANT - FORBIDDEN)
+GET {{baseUrl}}/api/meter-readings
+Authorization: Bearer {{tenant_token}}
+
+###
+# EXPECT: 403 Forbidden
+###
+
+### Get meter readings (WITHOUT AUTH - FAIL)
+GET {{baseUrl}}/api/meter-readings
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Get meter reading by ID (SUCCESS - OWNER)
+GET {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have detailed meter reading info
+###
+
+### Get meter reading by ID (TENANT - FORBIDDEN)
+GET {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{tenant_token}}
+
+###
+# EXPECT: 403 Forbidden
+###
+
+### Get meter reading by ID (INVALID ID - ERROR)
+GET {{baseUrl}}/api/meter-readings/invalid-id
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Invalid meter reading id"}
+###
+
+### Get meter reading by ID (NOT FOUND - ERROR)
+GET {{baseUrl}}/api/meter-readings/507f1f77bcf86cd799439011
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 404 Not Found
+# Response: {"message": "Meter reading not found"}
+###
+
+### Get meter reading by ID (WITHOUT AUTH - FAIL)
+GET {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Update meter reading (SUCCESS - OWNER)
+PUT {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "electricityReading": 160.0,
+  "waterReading": 210.0
+}
+
+###
+# EXPECT: 200 OK
+# Response will have updated meter reading
+###
+
+### Update meter reading (TENANT - FORBIDDEN)
+PUT {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{tenant_token}}
+Content-Type: application/json
+
+{
+  "electricityReading": 160.0,
+  "waterReading": 210.0
+}
+
+###
+# EXPECT: 403 Forbidden
+###
+
+### Update meter reading (WITHOUT AUTH - FAIL)
+PUT {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Content-Type: application/json
+
+{
+  "electricityReading": 160.0,
+  "waterReading": 210.0
+}
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Delete meter reading (SUCCESS - OWNER)
+DELETE {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response: {"message": "Meter reading deleted successfully"}
+###
+
+### Delete meter reading (TENANT - FORBIDDEN)
+DELETE {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+Authorization: Bearer {{tenant_token}}
+
+###
+# EXPECT: 403 Forbidden
+###
+
+### Delete meter reading (WITHOUT AUTH - FAIL)
+DELETE {{baseUrl}}/api/meter-readings/698da61f40e42e1db9ba7a2d
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+#######################################
+### 1️⃣6️⃣ TEST ROOMS WITH METER READINGS API
+#######################################
+
+### Get rooms with meter readings (SUCCESS - OWNER)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2025
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have rooms with building info, tenant info, and meter reading for specified month/year
+###
+
+### Get rooms with meter readings with filters (SUCCESS - OWNER)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2025&buildingId=698da61f40e42e1db9ba7a2d&floor=2
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have filtered rooms with building info, tenant info, and meter reading
+###
+
+### Get rooms with meter readings with pagination (SUCCESS - OWNER)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2025&page=1&limit=5
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 200 OK
+# Response will have paginated rooms with building info, tenant info, and meter reading
+###
+
+### Get rooms with meter readings (TENANT - FORBIDDEN)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2025
+Authorization: Bearer {{tenant_token}}
+
+###
+# EXPECT: 403 Forbidden
+# Only OWNER can access rooms with meter readings
+###
+
+### Get rooms with meter readings (WITHOUT AUTH - FAIL)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2025
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Get rooms with meter readings (MISSING MONTH - ERROR)
+GET {{baseUrl}}/api/rooms/meter-reading?year=2025
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Tháng và năm là bắt buộc"}
+###
+
+### Get rooms with meter readings (MISSING YEAR - ERROR)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Tháng và năm là bắt buộc"}
+###
+
+### Get rooms with meter readings (INVALID MONTH - ERROR)
+GET {{baseUrl}}/api/rooms/meter-reading?month=13&year=2025
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Tháng không hợp lệ (1-12)"}
+###
+
+### Get rooms with meter readings (INVALID YEAR - ERROR)
+GET {{baseUrl}}/api/rooms/meter-reading?month=3&year=2019
+Authorization: Bearer {{owner_token}}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "Năm không hợp lệ (2020-2030)"}
+###
+
+#######################################
+### 1️⃣7️⃣ TEST BULK METER READINGS API
+#######################################
+
+### Bulk upsert meter readings (SUCCESS - OWNER)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "698da61f40e42e1db9ba7a2d",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 150.5,
+      "waterReading": 200.0
+    },
+    {
+      "roomId": "698da61f40e42e1db9ba7a2e",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 180.0,
+      "waterReading": 220.0
+    }
+  ]
+}
+
+###
+# EXPECT: 201 Created
+# Response will have success array with created/updated meter readings
+###
+
+### Bulk upsert meter readings (PARTIAL SUCCESS - OWNER)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "698da61f40e42e1db9ba7a2d",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 160.0,
+      "waterReading": 210.0
+    },
+    {
+      "roomId": "invalid-room-id",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 180.0,
+      "waterReading": 220.0
+    }
+  ]
+}
+
+###
+# EXPECT: 207 Multi-Status
+# Response will have success array and errors array
+###
+
+### Bulk upsert meter readings (ALL FAILED - OWNER)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "invalid-room-id-1",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 150.5,
+      "waterReading": 200.0
+    },
+    {
+      "roomId": "invalid-room-id-2",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 180.0,
+      "waterReading": 220.0
+    }
+  ]
+}
+
+###
+# EXPECT: 400 Bad Request
+# Response will have errors array
+###
+
+### Bulk upsert meter readings (TENANT - FORBIDDEN)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{tenant_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "698da61f40e42e1db9ba7a2d",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 150.5,
+      "waterReading": 200.0
+    }
+  ]
+}
+
+###
+# EXPECT: 403 Forbidden
+# Only OWNER can bulk upsert meter readings
+###
+
+### Bulk upsert meter readings (WITHOUT AUTH - FAIL)
+POST {{baseUrl}}/api/meter-readings/bulk
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "698da61f40e42e1db9ba7a2d",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": 150.5,
+      "waterReading": 200.0
+    }
+  ]
+}
+
+###
+# EXPECT: 401 Unauthorized
+###
+
+### Bulk upsert meter readings (NEGATIVE VALUES - ERROR)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": [
+    {
+      "roomId": "698da61f40e42e1db9ba7a2d",
+      "month": 3,
+      "year": 2025,
+      "electricityReading": -10.0,
+      "waterReading": 200.0
+    }
+  ]
+}
+
+###
+# EXPECT: 207 Multi-Status
+# Response will have errors array about negative values
+###
+
+### Bulk upsert meter readings (EMPTY ARRAY - ERROR)
+POST {{baseUrl}}/api/meter-readings/bulk
+Authorization: Bearer {{owner_token}}
+Content-Type: application/json
+
+{
+  "meterReadings": []
+}
+
+###
+# EXPECT: 400 Bad Request
+# Response: {"message": "meterReadings must be an array with at least one item"}
 ###

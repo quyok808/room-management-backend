@@ -8,6 +8,7 @@ import {
   getRoomById,
   getOccupiedRooms,
   getRoomByUserId,
+  getRoomsWithMeterReadings,
 } from "../services/room.service";
 import { ROLE } from "../utils/app.constants";
 import { getBuildingById } from "../services/building.service";
@@ -253,6 +254,70 @@ export const getRoomByUserIdController = async (
     });
   } catch (error: any) {
     return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+export const getRoomsWithMeterReadingsController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const currentUser = (req as any).user;
+    const { month, year, buildingId, floor, page, limit } = req.query;
+
+    if (currentUser.role !== ROLE.OWNER) {
+      return res.status(403).json({
+        message: "Chỉ chủ nhà mới có thể xem danh sách phòng với chỉ số điện nước",
+      });
+    }
+
+    if (!month || !year) {
+      return res.status(400).json({
+        message: "Tháng và năm là bắt buộc",
+      });
+    }
+
+    const monthNum = parseInt(month as string, 10);
+    const yearNum = parseInt(year as string, 10);
+
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        message: "Tháng không hợp lệ (1-12)",
+      });
+    }
+
+    if (isNaN(yearNum) || yearNum < 2020 || yearNum > 2030) {
+      return res.status(400).json({
+        message: "Năm không hợp lệ (2020-2030)",
+      });
+    }
+
+    // Build search params
+    const searchParams: any = {};
+    if (buildingId) searchParams.buildingId = buildingId as string;
+    if (floor) searchParams.floor = parseInt(floor as string);
+
+    // Build pagination
+    const pagination: any = {};
+    if (page) pagination.page = parseInt(page as string);
+    if (limit) pagination.limit = parseInt(limit as string);
+
+    const result = await getRoomsWithMeterReadings(
+      monthNum,
+      yearNum,
+      searchParams,
+      pagination
+    );
+
+    return res.status(200).json({
+      message: "Lấy danh sách phòng với chỉ số điện nước thành công",
+      data: result.rooms,
+      pagination: result.pagination,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
       message: error.message,
     });
   }
