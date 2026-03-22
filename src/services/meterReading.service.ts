@@ -1,10 +1,13 @@
 import MeterReading, { IMeterReading } from "../models/MeterReading.model";
-import { CreateMeterReadingDto, UpdateMeterReadingDto } from "../dtos/meterReading.dto";
+import {
+  CreateMeterReadingDto,
+  UpdateMeterReadingDto,
+} from "../dtos/meterReading.dto";
 import { BulkMeterReadingDto } from "../dtos/bulkMeterReading.dto";
 import { Types } from "mongoose";
 
 export const createMeterReading = async (
-  data: CreateMeterReadingDto
+  data: CreateMeterReadingDto,
 ): Promise<IMeterReading> => {
   // Check if meter reading already exists for this room, month, and year
   const existingReading = await MeterReading.findOne({
@@ -14,20 +17,36 @@ export const createMeterReading = async (
   });
 
   if (existingReading) {
-    throw new Error(`Chỉ số điện nước cho phòng này trong tháng ${data.month}/${data.year} đã tồn tại`);
+    throw new Error(
+      `Chỉ số điện nước cho phòng này trong tháng ${data.month}/${data.year} đã tồn tại`,
+    );
   }
 
-  // Get the last meter reading for this room to validate current readings
-  const lastReading = await MeterReading.findOne({
-    roomId: new Types.ObjectId(data.roomId),
-  }).sort({ year: -1, month: -1 });
+  let prevMonth = data.month - 1;
+  let prevYear = data.year;
 
-  if (lastReading) {
-    if (data.electricityReading < lastReading.electricityReading) {
-      throw new Error("Chỉ số điện hiện tại phải lớn hơn hoặc bằng chỉ số trước đó");
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear -= 1;
+  }
+
+  const prevReading = await MeterReading.findOne({
+    roomId: new Types.ObjectId(data.roomId),
+    month: prevMonth,
+    year: prevYear,
+  });
+
+  if (prevReading) {
+    if (data.electricityReading < prevReading.electricityReading) {
+      throw new Error(
+        `Chỉ số điện phải ≥ tháng trước (${prevReading.electricityReading})`,
+      );
     }
-    if (data.waterReading < lastReading.waterReading) {
-      throw new Error("Chỉ số nước hiện tại phải lớn hơn hoặc bằng chỉ số trước đó");
+
+    if (data.waterReading < prevReading.waterReading) {
+      throw new Error(
+        `Chỉ số nước phải ≥ tháng trước (${prevReading.waterReading})`,
+      );
     }
   }
 
@@ -47,7 +66,7 @@ export const getMeterReadings = async (
   month?: number,
   year?: number,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   let query: any = {};
 
@@ -87,18 +106,18 @@ export const getMeterReadings = async (
 };
 
 export const getMeterReadingById = async (
-  id: string
+  id: string,
 ): Promise<IMeterReading | null> => {
   const meterReading = await MeterReading.findById(id).populate(
     "roomId",
-    "number buildingId"
+    "number buildingId",
   );
   return meterReading;
 };
 
 export const updateMeterReading = async (
   id: string,
-  data: UpdateMeterReadingDto
+  data: UpdateMeterReadingDto,
 ): Promise<IMeterReading | null> => {
   // Get current reading to validate
   const currentReading = await MeterReading.findById(id);
@@ -107,28 +126,37 @@ export const updateMeterReading = async (
   }
 
   // If updating readings, validate against previous values
-  if (data.electricityReading !== undefined && data.electricityReading < currentReading.electricityReading) {
+  if (
+    data.electricityReading !== undefined &&
+    data.electricityReading < currentReading.electricityReading
+  ) {
     // Get the previous reading to ensure it doesn't go below
     const prevReading = await MeterReading.findOne({
       roomId: currentReading.roomId,
       $or: [
         { year: { $lt: currentReading.year } },
-        { year: currentReading.year, month: { $lt: currentReading.month } }
-      ]
+        { year: currentReading.year, month: { $lt: currentReading.month } },
+      ],
     }).sort({ year: -1, month: -1 });
 
-    if (prevReading && data.electricityReading < prevReading.electricityReading) {
+    if (
+      prevReading &&
+      data.electricityReading < prevReading.electricityReading
+    ) {
       throw new Error("Chỉ số điện mới phải lớn hơn hoặc bằng chỉ số trước đó");
     }
   }
 
-  if (data.waterReading !== undefined && data.waterReading < currentReading.waterReading) {
+  if (
+    data.waterReading !== undefined &&
+    data.waterReading < currentReading.waterReading
+  ) {
     const prevReading = await MeterReading.findOne({
       roomId: currentReading.roomId,
       $or: [
         { year: { $lt: currentReading.year } },
-        { year: currentReading.year, month: { $lt: currentReading.month } }
-      ]
+        { year: currentReading.year, month: { $lt: currentReading.month } },
+      ],
     }).sort({ year: -1, month: -1 });
 
     if (prevReading && data.waterReading < prevReading.waterReading) {
@@ -147,72 +175,204 @@ export const deleteMeterReading = async (id: string): Promise<boolean> => {
   return result !== null;
 };
 
+// export const bulkUpsertMeterReadings = async (
+//   data: BulkMeterReadingDto,
+// ): Promise<{ success: IMeterReading[]; errors: string[] }> => {
+//   const results: IMeterReading[] = [];
+//   const errors: string[] = [];
+
+//   for (const item of data.meterReadings) {
+//     try {
+//       // Validate that readings are non-negative
+//       if (item.electricityReading < 0 || item.waterReading < 0) {
+//         errors.push(`Room ${item.roomId}: Chỉ số điện nước không được âm`);
+//         continue;
+//       }
+
+//       // Get existing reading for this room, month, and year
+//       const existingReading = await MeterReading.findOne({
+//         roomId: new Types.ObjectId(item.roomId),
+//         month: item.month,
+//         year: item.year,
+//       });
+
+//       if (existingReading) {
+//         // Update existing reading
+//         // Validate that new readings are not less than existing
+//         if (item.electricityReading < existingReading.electricityReading) {
+//           errors.push(
+//             `Room ${item.roomId}: Chỉ số điện mới phải lớn hơn hoặc bằng chỉ số hiện tại (${existingReading.electricityReading})`,
+//           );
+//           continue;
+//         }
+
+//         if (item.waterReading < existingReading.waterReading) {
+//           errors.push(
+//             `Room ${item.roomId}: Chỉ số nước mới phải lớn hơn hoặc bằng chỉ số hiện tại (${existingReading.waterReading})`,
+//           );
+//           continue;
+//         }
+
+//         const updatedReading = await MeterReading.findByIdAndUpdate(
+//           existingReading._id,
+//           {
+//             electricityReading: item.electricityReading,
+//             waterReading: item.waterReading,
+//           },
+//           { new: true },
+//         );
+
+//         if (updatedReading) {
+//           results.push(updatedReading);
+//         }
+//       } else {
+//         // Create new reading
+//         // Get the last meter reading for this room to validate current readings
+//         const lastReading = await MeterReading.findOne({
+//           roomId: new Types.ObjectId(item.roomId),
+//         }).sort({ year: -1, month: -1 });
+
+//         if (lastReading) {
+//           if (item.electricityReading < lastReading.electricityReading) {
+//             errors.push(
+//               `Room ${item.roomId}: Chỉ số điện phải lớn hơn hoặc bằng chỉ số trước đó (${lastReading.electricityReading})`,
+//             );
+//             continue;
+//           }
+//           if (item.waterReading < lastReading.waterReading) {
+//             errors.push(
+//               `Room ${item.roomId}: Chỉ số nước phải lớn hơn hoặc bằng chỉ số trước đó (${lastReading.waterReading})`,
+//             );
+//             continue;
+//           }
+//         }
+
+//         const newReading = await MeterReading.create({
+//           roomId: new Types.ObjectId(item.roomId),
+//           month: item.month,
+//           year: item.year,
+//           electricityReading: item.electricityReading,
+//           waterReading: item.waterReading,
+//         });
+
+//         results.push(newReading);
+//       }
+//     } catch (error: any) {
+//       errors.push(`Room ${item.roomId}: ${error.message}`);
+//     }
+//   }
+
+//   return { success: results, errors };
+// };
 export const bulkUpsertMeterReadings = async (
-  data: BulkMeterReadingDto
+  data: BulkMeterReadingDto,
 ): Promise<{ success: IMeterReading[]; errors: string[] }> => {
   const results: IMeterReading[] = [];
   const errors: string[] = [];
 
   for (const item of data.meterReadings) {
     try {
-      // Validate that readings are non-negative
+      const roomObjectId = new Types.ObjectId(item.roomId);
+
+      // ❌ Không âm
       if (item.electricityReading < 0 || item.waterReading < 0) {
         errors.push(`Room ${item.roomId}: Chỉ số điện nước không được âm`);
         continue;
       }
 
-      // Get existing reading for this room, month, and year
-      const existingReading = await MeterReading.findOne({
-        roomId: new Types.ObjectId(item.roomId),
-        month: item.month,
-        year: item.year,
-      });
+      // 👉 Tính tháng trước
+      let prevMonth = item.month - 1;
+      let prevYear = item.year;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
 
+      // 👉 Tính tháng sau
+      let nextMonth = item.month + 1;
+      let nextYear = item.year;
+      if (nextMonth === 13) {
+        nextMonth = 1;
+        nextYear += 1;
+      }
+
+      // 👉 Lấy dữ liệu liên quan
+      const [existingReading, prevReading, nextReading] = await Promise.all([
+        MeterReading.findOne({
+          roomId: roomObjectId,
+          month: item.month,
+          year: item.year,
+        }),
+        MeterReading.findOne({
+          roomId: roomObjectId,
+          month: prevMonth,
+          year: prevYear,
+        }),
+        MeterReading.findOne({
+          roomId: roomObjectId,
+          month: nextMonth,
+          year: nextYear,
+        }),
+      ]);
+
+      // ✅ Validate với tháng trước
+      if (prevReading) {
+        if (item.electricityReading < prevReading.electricityReading) {
+          errors.push(
+            `Room ${item.roomId}: Điện phải ≥ tháng trước (${prevReading.electricityReading})`,
+          );
+          continue;
+        }
+
+        if (item.waterReading < prevReading.waterReading) {
+          errors.push(
+            `Room ${item.roomId}: Nước phải ≥ tháng trước (${prevReading.waterReading})`,
+          );
+          continue;
+        }
+      }
+
+      // ✅ Validate với tháng sau
+      if (nextReading) {
+        if (item.electricityReading > nextReading.electricityReading) {
+          errors.push(
+            `Room ${item.roomId}: Điện phải ≤ tháng sau (${nextReading.electricityReading})`,
+          );
+          continue;
+        }
+
+        if (item.waterReading > nextReading.waterReading) {
+          errors.push(
+            `Room ${item.roomId}: Nước phải ≤ tháng sau (${nextReading.waterReading})`,
+          );
+          continue;
+        }
+      }
+
+      // =============================
+      // 🔁 UPDATE
+      // =============================
       if (existingReading) {
-        // Update existing reading
-        // Validate that new readings are not less than existing
-        if (item.electricityReading < existingReading.electricityReading) {
-          errors.push(`Room ${item.roomId}: Chỉ số điện mới phải lớn hơn hoặc bằng chỉ số hiện tại (${existingReading.electricityReading})`);
-          continue;
-        }
-
-        if (item.waterReading < existingReading.waterReading) {
-          errors.push(`Room ${item.roomId}: Chỉ số nước mới phải lớn hơn hoặc bằng chỉ số hiện tại (${existingReading.waterReading})`);
-          continue;
-        }
-
         const updatedReading = await MeterReading.findByIdAndUpdate(
           existingReading._id,
           {
             electricityReading: item.electricityReading,
             waterReading: item.waterReading,
           },
-          { new: true }
+          { new: true },
         );
 
         if (updatedReading) {
           results.push(updatedReading);
         }
-      } else {
-        // Create new reading
-        // Get the last meter reading for this room to validate current readings
-        const lastReading = await MeterReading.findOne({
-          roomId: new Types.ObjectId(item.roomId),
-        }).sort({ year: -1, month: -1 });
+      }
 
-        if (lastReading) {
-          if (item.electricityReading < lastReading.electricityReading) {
-            errors.push(`Room ${item.roomId}: Chỉ số điện phải lớn hơn hoặc bằng chỉ số trước đó (${lastReading.electricityReading})`);
-            continue;
-          }
-          if (item.waterReading < lastReading.waterReading) {
-            errors.push(`Room ${item.roomId}: Chỉ số nước phải lớn hơn hoặc bằng chỉ số trước đó (${lastReading.waterReading})`);
-            continue;
-          }
-        }
-
+      // =============================
+      // ➕ CREATE
+      // =============================
+      else {
         const newReading = await MeterReading.create({
-          roomId: new Types.ObjectId(item.roomId),
+          roomId: roomObjectId,
           month: item.month,
           year: item.year,
           electricityReading: item.electricityReading,
