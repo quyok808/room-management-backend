@@ -1,0 +1,59 @@
+### Test Invoice Preview API
+GET http://localhost:3000/api/invoice-preview?month=3&year=2026
+Content-Type: application/json
+
+### Test Invoice Preview API with Building Filter
+GET http://localhost:3000/api/invoice-preview?month=3&year=2026&buildingId=507f1f77bcf86cd799439011
+Content-Type: application/json
+
+### Test with invalid params
+GET http://localhost:3000/api/invoice-preview?month=13&year=2026
+Content-Type: application/json
+
+### Test missing params
+GET http://localhost:3000/api/invoice-preview?month=3
+Content-Type: application/json
+
+### Test Bulk Create Invoices API
+POST http://localhost:3000/api/bulk-create
+Content-Type: application/json
+
+{
+  "roomIds": ["69b581e660c3ad535c71695d", "69b581e660c3ad535c71695e"],
+  "month": 3,
+  "year": 2026
+}
+
+### Test Bulk Create with invalid data
+POST http://localhost:3000/api/bulk-create
+Content-Type: application/json
+
+{
+  "roomIds": [],
+  "month": 13,
+  "year": 2026
+}
+
+### Test Get Invoices List - Basic
+GET http://localhost:3000/api/invoices?month=3&year=2026
+Content-Type: application/json
+
+### Test Get Invoices List - With Building Filter
+GET http://localhost:3000/api/invoices?month=3&year=2026&buildingId=507f1f77bcf86cd799439011
+Content-Type: application/json
+
+### Test Get Invoices List - With Room Filter
+GET http://localhost:3000/api/invoices?month=3&year=2026&roomId=69b581e660c3ad535c71695d
+Content-Type: application/json
+
+### Test Get Invoices List - With Status Filter
+GET http://localhost:3000/api/invoices?month=3&year=2026&status=unpaid
+Content-Type: application/json
+
+### Test Get Invoices List - With Pagination
+GET http://localhost:3000/api/invoices?month=3&year=2026&page=2&limit=5
+Content-Type: application/json
+
+### Test Get Invoices List - Combined Filters
+GET http://localhost:3000/api/invoices?month=3&year=2026&buildingId=507f1f77bcf86cd799439011&status=paid&page=1&limit=10
+Content-Type: application/json
