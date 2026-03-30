@@ -102,11 +102,6 @@ export class InvoiceService {
 
     const existingInvoices = await Invoice.find(invoiceQuery);
 
-    const invoiceMap = new Set<string>();
-    existingInvoices.forEach((invoice) => {
-      invoiceMap.add(invoice.roomId.toString());
-    });
-
     // 6. Process mỗi room
     for (const room of rooms) {
       const building = room.buildingId as any;
@@ -119,9 +114,27 @@ export class InvoiceService {
 
       try {
         // 7. Check đã có invoice chưa
-        if (invoiceMap.has(room._id.toString())) {
+        const existingInvoice = existingInvoices.find(
+          (inv) => inv.roomId.toString() === room._id.toString(),
+        );
+
+        if (existingInvoice) {
+          roomData.electricityUsage = existingInvoice.electricityUsage;
+          roomData.electricityCost = existingInvoice.electricityCost;
+          roomData.waterUsage = existingInvoice.waterUsage;
+          roomData.waterCost = existingInvoice.waterCost;
+
+          roomData.rentAmount = existingInvoice.rentAmount;
+          roomData.serviceFee = existingInvoice.serviceFee;
+          roomData.internetFee = existingInvoice.internetFee;
+          roomData.parkingFee = existingInvoice.parkingFee;
+          roomData.otherFee = existingInvoice.otherFee;
+
+          roomData.totalAmount = existingInvoice.totalAmount;
+
+          roomData.canCreateInvoice = false;
           roomData.error = "Đã có hóa đơn";
-          this.fillBaseFees(room, roomData);
+
           results.push(roomData);
           continue;
         }
