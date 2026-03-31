@@ -267,6 +267,20 @@ export class InvoiceService {
     return invoice;
   }
 
+  static async deleteInvoice(invoiceId: string) {
+    if (!Types.ObjectId.isValid(invoiceId)) {
+      throw new Error("ID hóa đơn không hợp lệ");
+    }
+
+    const invoice = await Invoice.findByIdAndDelete(invoiceId);
+
+    if (!invoice) {
+      throw new Error("Không tìm thấy hóa đơn");
+    }
+
+    return invoice;
+  }
+
   static async bulkCreateInvoices(
     roomIds: string[],
     month?: number,
