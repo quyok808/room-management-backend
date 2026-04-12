@@ -10,7 +10,6 @@ export enum InvoiceStatus {
 export interface IInvoice extends Document {
   tenantId: Types.ObjectId;
   roomId: Types.ObjectId;
-
   month: number;
   year: number;
 
@@ -66,21 +65,18 @@ const invoiceSchema = new Schema<IInvoice>(
     month: { type: Number, required: true },
     year: { type: Number, required: true },
 
-    // điện
     electricityPrevious: { type: Number, required: true },
     electricityCurrent: { type: Number, required: true },
     electricityUsage: { type: Number, required: true },
     electricityUnitPrice: { type: Number, required: true },
     electricityCost: { type: Number, required: true },
 
-    // nước
     waterPrevious: { type: Number, required: true },
     waterCurrent: { type: Number, required: true },
     waterUsage: { type: Number, required: true },
     waterUnitPrice: { type: Number, required: true },
     waterCost: { type: Number, required: true },
 
-    // phí
     rentAmount: { type: Number, required: true },
     internetFee: { type: Number, default: 0 },
     parkingFee: { type: Number, default: 0 },
@@ -88,11 +84,8 @@ const invoiceSchema = new Schema<IInvoice>(
     otherFee: { type: Number, default: 0 },
 
     totalAmount: { type: Number, required: true },
-
     dueDate: { type: Date, required: true },
-
     notes: { type: String, default: "" },
-
     status: {
       type: String,
       enum: Object.values(InvoiceStatus),
@@ -102,7 +95,6 @@ const invoiceSchema = new Schema<IInvoice>(
   { timestamps: true },
 );
 
-// ❗ tránh tạo trùng hóa đơn
 invoiceSchema.index({ roomId: 1, month: 1, year: 1 }, { unique: true });
 
 export default model<IInvoice>("Invoice", invoiceSchema);

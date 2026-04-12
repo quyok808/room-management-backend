@@ -30,7 +30,10 @@ export const getAllRoomsController = async (req: Request, res: Response) => {
 
     const result = await getAllRooms(searchParams, pagination);
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      rooms: result.data,
+      pagination: result.pagination,
+    });
   } catch (error: any) {
     return res.status(400).json({
       message: error.message,

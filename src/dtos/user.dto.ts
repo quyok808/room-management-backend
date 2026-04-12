@@ -38,8 +38,8 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[0-9]{9,12}$/, { message: "CCCD phải từ 9-12 số" })
-  cccd?: string;
+  @Matches(/^[A-Z0-9]{1,10}$/, { message: "Biển số xe không hợp lệ" })
+  licensePlate?: string;
 }
 
 export class UpdateUserDto {
@@ -64,6 +64,6 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[0-9]{9,12}$/, { message: "CCCD phải từ 9-12 số" })
-  cccd?: string;
+  @Matches(/^[A-Z0-9]{1,10}$/, { message: "Biển số xe không hợp lệ" })
+  licensePlate?: string;
 }

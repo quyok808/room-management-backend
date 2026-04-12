@@ -7,7 +7,7 @@ export const toUserResponse = (user: IUser): UserResponseDto => ({
   name: user.name,
   role: user.role,
   ...(user.phone && { phone: user.phone }),
-  ...(user.cccd && { cccd: user.cccd }),
+  ...(user.licensePlate && { licensePlate: user.licensePlate }),
   ...(user.createdAt && { createdAt: user.createdAt.toISOString() }),
   ...(user.updatedAt && { updatedAt: user.updatedAt.toISOString() }),
   ...(user.cccdImages && {

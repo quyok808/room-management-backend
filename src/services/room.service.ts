@@ -1,25 +1,129 @@
 import Room, { IRoom } from "../models/room.model";
 import Building from "../models/building.model";
-import { UpdateRoomDto } from "../dtos/room.dto";
+import { UpdateRoomDto, MemberUpdateDto } from "../dtos/room.dto";
 import { getBuildingById } from "./building.service";
 import { ROOMSTATUS, TenantStatus } from "../utils/app.constants";
 import { Types } from "mongoose";
 import Tenant from "../models/tenant.model";
 import PaymentTransaction from "../models/payment-transaction.model";
-import MeterReading from "../models/MeterReading.model";
+import {
+  PaginationUtil,
+  PaginationParams,
+  PaginatedResponse,
+} from "../utils/pagination.util";
 
 export const updateRoom = async (
   roomId: string,
   data: UpdateRoomDto,
   ownerId: string,
 ): Promise<IRoom | null> => {
-  const room = await Room.findById(roomId);
-  if (!room) return null;
+  // 1. Tìm phòng và kiểm tra isDeleted
+  const room = await Room.findOne({ _id: roomId, isDeleted: false });
+  if (!room) throw new Error("Không tìm thấy phòng hoặc phòng đã bị xóa");
 
-  const building = await getBuildingById(room.buildingId.toString());
-  if (!building || building.ownerId.toString() !== ownerId) return null;
+  // 2. Kiểm tra quyền sở hữu
+  const building = await Building.findOne({ _id: room.buildingId, ownerId });
+  if (!building) throw new Error("Bạn không có quyền chỉnh sửa phòng này");
 
-  const updatedRoom = await Room.findByIdAndUpdate(roomId, data, { new: true });
+  // 3. Kiểm tra trùng số phòng
+  if (data.number && data.number !== room.number) {
+    const existingRoom = await Room.findOne({
+      buildingId: room.buildingId,
+      number: data.number,
+      _id: { $ne: roomId },
+      isDeleted: false,
+    });
+    if (existingRoom)
+      throw new Error(`Số phòng ${data.number} đã tồn tại trong tòa nhà này`);
+  }
+
+  // Chuyển sang object thuần để xử lý mảng dễ dàng
+  let updatedMembers: any[] = room.toObject().members;
+
+  if (data.members) {
+    const repCount = data.members.filter((m) => m.isRepresentative).length;
+    if (repCount > 1)
+      throw new Error("Một phòng chỉ được có duy nhất một người đại diện");
+
+    const incomingMemberIds = data.members
+      .filter((m) => m._id)
+      .map((m) => m._id!.toString());
+
+    // Xóa những người không có trong danh sách gửi lên
+    updatedMembers = updatedMembers.filter((m) =>
+      incomingMemberIds.includes(m._id.toString()),
+    );
+
+    for (const memberData of data.members) {
+      // Chuyển đổi userId sang ObjectId hoặc null một cách an toàn
+      const userId =
+        memberData.userId && memberData.userId.toString().length === 24
+          ? new Types.ObjectId(memberData.userId)
+          : null;
+
+      if (memberData._id) {
+        // Cập nhật member cũ
+        const index = updatedMembers.findIndex(
+          (m) => m._id.toString() === memberData._id?.toString(),
+        );
+        if (index !== -1) {
+          updatedMembers[index] = {
+            ...updatedMembers[index],
+            ...memberData,
+            _id: new Types.ObjectId(memberData._id),
+            userId,
+          };
+        }
+      } else {
+        // Thêm member mới với đầy đủ các field required
+        updatedMembers.push({
+          name: memberData.name || "",
+          phone: memberData.phone || "",
+          licensePlate: memberData.licensePlate || "",
+          isRepresentative: !!memberData.isRepresentative,
+          cccdImages: {
+            front: {
+              url: memberData.cccdImages?.front?.url || "",
+              publicId: memberData.cccdImages?.front?.publicId || "",
+            },
+            back: {
+              url: memberData.cccdImages?.back?.url || "",
+              publicId: memberData.cccdImages?.back?.publicId || "",
+            },
+          },
+          _id: new Types.ObjectId(),
+          userId,
+        });
+      }
+    }
+  }
+
+  // 4. Xử lý logic trạng thái
+  let newStatus = data.status || room.status;
+  if (updatedMembers.length > 0 && newStatus === ROOMSTATUS.AVAILABLE) {
+    newStatus = ROOMSTATUS.OCCUPIED;
+  } else if (
+    updatedMembers.length === 0 &&
+    newStatus !== ROOMSTATUS.MAINTENANCE
+  ) {
+    newStatus = ROOMSTATUS.AVAILABLE;
+  }
+
+  // Loại bỏ các trường không nên update trực tiếp từ data
+  const { buildingId, members, ...safeUpdateData } = data;
+
+  const updatedRoom = await Room.findByIdAndUpdate(
+    roomId,
+    {
+      ...safeUpdateData,
+      members: updatedMembers,
+      status: newStatus,
+    },
+    { new: true, runValidators: true },
+  )
+    .populate("buildingId", "name")
+    .populate("members.userId", "name email phone");
+
   return updatedRoom;
 };
 
@@ -30,8 +134,8 @@ export const deleteRoom = async (
   const room = await Room.findById(roomId);
   if (!room) return null;
 
-  if (room.currentTenant) {
-    throw new Error("Cannot delete room that has a tenant");
+  if (room.members && room.members.length > 0) {
+    throw new Error("Cannot delete room that has tenants");
   }
 
   const building = await getBuildingById(room.buildingId.toString());
@@ -72,7 +176,18 @@ export const assignTenant = async (
     status: TenantStatus.ACTIVE,
   });
 
-  room.currentTenant = new Types.ObjectId(userId);
+  room.members.push({
+    _id: new Types.ObjectId(),
+    userId: new Types.ObjectId(userId),
+    name: "", // Will be populated from user data
+    phone: "",
+    licensePlate: "",
+    cccdImages: {
+      front: { url: "", publicId: "" },
+      back: { url: "", publicId: "" },
+    },
+    isRepresentative: true, // First member is representative
+  } as any);
   room.status = ROOMSTATUS.OCCUPIED;
   await room.save();
 
@@ -89,24 +204,39 @@ export const removeTenant = async (
   const building = await getBuildingById(room.buildingId.toString());
   if (!building || building.ownerId.toString() !== ownerId) return null;
 
-  if (!room.currentTenant) {
-    throw new Error("Room has no tenant to remove");
+  if (!room.members || room.members.length === 0) {
+    throw new Error("Room has no tenants to remove");
   }
 
-  await Tenant.findOneAndUpdate(
-    {
-      roomId: new Types.ObjectId(roomId),
-      userId: room.currentTenant,
-      status: TenantStatus.ACTIVE,
-    },
-    {
-      status: TenantStatus.INACTIVE,
-      contractEndDate: new Date(),
-    },
+  // Remove the first tenant (representative) from the room
+  const representativeTenant = room.members.find(
+    (member) => member.isRepresentative,
   );
+  if (!representativeTenant) {
+    throw new Error("No representative tenant found in the room");
+  }
 
-  room.set("currentTenant", undefined);
-  room.status = ROOMSTATUS.AVAILABLE;
+  if (representativeTenant.userId) {
+    await Tenant.findOneAndUpdate(
+      {
+        roomId: new Types.ObjectId(roomId),
+        userId: representativeTenant.userId,
+        status: TenantStatus.ACTIVE,
+      } as any,
+      {
+        status: TenantStatus.INACTIVE,
+      },
+    );
+  }
+
+  // Remove the representative tenant from members array
+  room.members = room.members.filter((member) => !member.isRepresentative);
+
+  // If no more members, set room to available
+  if (room.members.length === 0) {
+    room.status = ROOMSTATUS.AVAILABLE;
+  }
+
   await room.save();
 
   return room;
@@ -119,11 +249,8 @@ export const getAllRooms = async (
     floor?: number;
     status?: ROOMSTATUS;
   },
-  pagination?: {
-    page?: number;
-    limit?: number;
-  },
-) => {
+  pagination?: PaginationParams,
+): Promise<PaginatedResponse<IRoom>> => {
   let query: any = {
     isDeleted: false,
   };
@@ -144,37 +271,19 @@ export const getAllRooms = async (
     query.status = searchParams.status;
   }
 
-  const page = Math.max(1, pagination?.page || 1);
-  const limit = Math.min(100, Math.max(1, pagination?.limit || 10));
-  const skip = (page - 1) * limit;
-
-  const total = await Room.countDocuments(query);
-  const totalPages = Math.ceil(total / limit);
-
-  const rooms = await Room.find(query)
-    .populate("buildingId", "name")
-    .populate("currentTenant", "name email")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  return {
-    rooms,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-    },
-  };
+  return await PaginationUtil.paginate(Room, query, pagination, {
+    populate: [
+      { path: "buildingId", select: "name" },
+      { path: "members.userId", select: "name email" },
+    ],
+    sort: { createdAt: -1 },
+  });
 };
 
 export const getRoomById = async (roomId: string): Promise<IRoom | null> => {
   const room = await Room.findOne({ _id: roomId, isDeleted: false })
     .populate("buildingId", "name")
-    .populate("currentTenant", "name email");
+    .populate("members.userId", "name email");
   return room;
 };
 
@@ -210,7 +319,7 @@ export const getOccupiedRooms = async (
   const roomsWithPayments = paymentTransactions.map((pt) => pt._id);
 
   let query: any = {
-    currentTenant: { $exists: true, $ne: null }, // Only rooms with current tenant
+    members: { $exists: true, $not: { $size: 0 } }, // Only rooms with members
     status: ROOMSTATUS.OCCUPIED,
     _id: { $nin: roomsWithPayments }, // Exclude rooms that have payments
     isDeleted: false,
@@ -235,7 +344,7 @@ export const getOccupiedRooms = async (
 
   const rooms = await Room.find(query)
     .populate("buildingId", "name")
-    .populate("currentTenant", "name email")
+    .populate("members.userId", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -254,10 +363,12 @@ export const getOccupiedRooms = async (
 };
 
 export const getRoomByUserId = (userId: string) => {
-  return Room.findOne({ currentTenant: userId, isDeleted: false }).populate(
-    "buildingId",
-    "name",
-  );
+  return Room.findOne({
+    "members.userId": userId,
+    isDeleted: false,
+  })
+    .populate("buildingId", "name")
+    .populate("members.userId", "name email");
 };
 
 export const getRoomsWithMeterReadings = async (
@@ -322,14 +433,14 @@ export const getRoomsWithMeterReadings = async (
     {
       $lookup: {
         from: "users",
-        localField: "currentTenant",
+        localField: "members.userId",
         foreignField: "_id",
-        as: "tenant",
+        as: "members",
       },
     },
     {
       $unwind: {
-        path: "$tenant",
+        path: "$members",
         preserveNullAndEmptyArrays: true,
       },
     },
@@ -370,9 +481,9 @@ export const getRoomsWithMeterReadings = async (
         electricityUnitPrice: 1,
         waterPricePerPerson: 1,
         waterPricePerCubicMeter: 1,
-        internetFee: 1,
         parkingFee: 1,
-        serviceFee: 1,
+        livingFee: 1,
+        deposit: 1,
         status: 1,
         description: 1,
         createdAt: 1,
@@ -382,11 +493,15 @@ export const getRoomsWithMeterReadings = async (
           name: 1,
           address: 1,
         },
-        tenant: {
-          _id: 1,
+        members: {
+          userId: 1,
           name: 1,
           email: 1,
           phone: 1,
+          moveInDate: 1,
+          contractEndDate: 1,
+          isRepresentative: 1,
+          emergencyContact: 1,
         },
         meterReading: {
           _id: 1,

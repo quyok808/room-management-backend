@@ -8,6 +8,7 @@ import {
   getNonTenantUsers,
 } from "../services/user.service";
 import { ROLE } from "../utils/app.constants";
+import { PaginationUtil } from "../utils/pagination.util";
 
 export const createUser = async (req: Request, res: Response) => {
   try {
@@ -18,11 +19,8 @@ export const createUser = async (req: Request, res: Response) => {
     const frontFile = files?.cccdFront?.[0];
     const backFile = files?.cccdBack?.[0];
 
-    if (!frontFile || !backFile) {
-      return res.status(400).json({
-        message: "CCCD front and back images are required",
-      });
-    }
+    // CCCD images are optional when creating user
+    // User can update them later
 
     const newUser = await UserService({
       ...req.body,
@@ -84,7 +82,7 @@ export const getUser = async (req: Request, res: Response) => {
 
 export const getAllUsersController = async (req: Request, res: Response) => {
   try {
-    const { email, name, phone, page, limit } = req.query;
+    const { email, name, phone } = req.query;
 
     const searchParams: {
       email?: string;
@@ -104,18 +102,7 @@ export const getAllUsersController = async (req: Request, res: Response) => {
       searchParams.phone = phone;
     }
 
-    const paginationParams: {
-      page?: number;
-      limit?: number;
-    } = {};
-
-    if (typeof page === "string") {
-      paginationParams.page = parseInt(page, 10);
-    }
-
-    if (typeof limit === "string") {
-      paginationParams.limit = parseInt(limit, 10);
-    }
+    const paginationParams = PaginationUtil.parsePaginationParams(req.query);
 
     const result = await getAllUsers(searchParams, paginationParams);
 
@@ -227,7 +214,7 @@ export const getNonTenantUsersController = async (
   res: Response,
 ) => {
   try {
-    const { email, name, phone, page, limit } = req.query;
+    const { email, name, phone } = req.query;
 
     const searchParams: {
       email?: string;
@@ -247,18 +234,7 @@ export const getNonTenantUsersController = async (
       searchParams.phone = phone;
     }
 
-    const paginationParams: {
-      page?: number;
-      limit?: number;
-    } = {};
-
-    if (typeof page === "string") {
-      paginationParams.page = parseInt(page, 10);
-    }
-
-    if (typeof limit === "string") {
-      paginationParams.limit = parseInt(limit, 10);
-    }
+    const paginationParams = PaginationUtil.parsePaginationParams(req.query);
 
     const result = await getNonTenantUsers(searchParams, paginationParams);
 
