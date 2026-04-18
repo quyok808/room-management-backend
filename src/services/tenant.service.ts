@@ -24,7 +24,10 @@ interface PaginationParams {
   limit?: number;
 }
 
-export const getAllTenants = async (params?: GetAllTenantsParams, pagination?: PaginationParams) => {
+export const getAllTenants = async (
+  params?: GetAllTenantsParams,
+  pagination?: PaginationParams,
+) => {
   let query: any = {};
 
   // Filter by status if provided
@@ -35,7 +38,9 @@ export const getAllTenants = async (params?: GetAllTenantsParams, pagination?: P
   // Filter by buildingId if provided (through rooms)
   if (params?.buildingId) {
     query.roomId = {
-      $in: await Room.find({ buildingId: new Types.ObjectId(params.buildingId) }).distinct('_id')
+      $in: await Room.find({
+        buildingId: new Types.ObjectId(params.buildingId),
+      }).distinct("_id"),
     };
   }
 
@@ -58,16 +63,16 @@ export const getAllTenants = async (params?: GetAllTenantsParams, pagination?: P
 
   const tenants = await Tenant.find(query)
     .populate({
-      path: 'userId',
-      select: 'name email phone cccd cccdImages'
+      path: "userId",
+      select: "name email phone cccd cccdImages",
     })
     .populate({
-      path: 'roomId',
-      select: 'number floor buildingId',
+      path: "roomId",
+      select: "number floor buildingId",
       populate: {
-        path: 'buildingId',
-        select: 'name address'
-      }
+        path: "buildingId",
+        select: "name address",
+      },
     })
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -81,30 +86,33 @@ export const getAllTenants = async (params?: GetAllTenantsParams, pagination?: P
       total,
       totalPages,
       hasNext: page < totalPages,
-      hasPrev: page > 1
-    }
+      hasPrev: page > 1,
+    },
   };
 };
 
 export const getTenantById = async (tenantId: string): Promise<any | null> => {
   const tenant = await Tenant.findById(tenantId)
     .populate({
-      path: 'userId',
-      select: 'name email phone cccd cccdImages'
+      path: "userId",
+      select: "name email phone cccd cccdImages",
     })
     .populate({
-      path: 'roomId',
-      select: 'number floor buildingId',
+      path: "roomId",
+      select: "number floor buildingId",
       populate: {
-        path: 'buildingId',
-        select: 'name address'
-      }
+        path: "buildingId",
+        select: "name address",
+      },
     });
 
   return tenant;
 };
 
-export const updateTenant = async (tenantId: string, updateData: UpdateTenantDto): Promise<any | null> => {
+export const updateTenant = async (
+  tenantId: string,
+  updateData: UpdateTenantDto,
+): Promise<any | null> => {
   // Find the tenant first
   const tenant = await Tenant.findById(tenantId);
   if (!tenant) {
@@ -141,18 +149,22 @@ export const updateTenant = async (tenantId: string, updateData: UpdateTenantDto
   }
 
   // Update tenant
-  const updatedTenant = await Tenant.findByIdAndUpdate(tenantId, tenantUpdateData, { new: true })
+  const updatedTenant = await Tenant.findByIdAndUpdate(
+    tenantId,
+    tenantUpdateData,
+    { new: true },
+  )
     .populate({
-      path: 'userId',
-      select: 'name email phone cccd cccdImages'
+      path: "userId",
+      select: "name email phone cccd cccdImages",
     })
     .populate({
-      path: 'roomId',
-      select: 'number floor buildingId',
+      path: "roomId",
+      select: "number floor buildingId",
       populate: {
-        path: 'buildingId',
-        select: 'name address'
-      }
+        path: "buildingId",
+        select: "name address",
+      },
     });
 
   return updatedTenant;

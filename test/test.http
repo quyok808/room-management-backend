@@ -1552,3 +1552,76 @@ Content-Type: application/json
 # EXPECT: 400 Bad Request
 # Response: {"message": "meterReadings must be an array with at least one item"}
 ###
+
+#######################################
+### 🆕 TEST CREATE USER API
+#######################################
+
+### Create user (SUCCESS - OWNER) - Without CCCD images
+POST {{baseUrl}}/api/users/create
+Authorization: Bearer {{owner_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="email"
+
+testuser01@gmail.com
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Nguyễn Văn Test
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="phone"
+
+0987654321
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="role"
+
+0
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+# EXPECT: 201 Created
+# Response sẽ có user data mới (không có password, không có cccdImages)
+# licensePlate sẽ là empty string theo model default
+###
+
+### Create user (SUCCESS - OWNER) - With CCCD images
+POST {{baseUrl}}/api/users/create
+Authorization: Bearer {{owner_token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="email"
+
+testuser02@gmail.com
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Trần Thị Test
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="phone"
+
+0123456789
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="licensePlate"
+
+51A12345
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="cccdFront"; filename="front.jpg"
+Content-Type: image/jpeg
+
+<./test-images/cccd-front.jpg>
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="cccdBack"; filename="back.jpg"
+Content-Type: image/jpeg
+
+<./test-images/cccd-back.jpg>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+# EXPECT: 201 Created
+# Response sẽ có user data mới với licensePlate = "51A12345" và cccdImages
+###
+
+

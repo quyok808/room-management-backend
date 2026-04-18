@@ -4,11 +4,8 @@ export interface IMeterReading extends Document {
   roomId: Types.ObjectId;
   month: number;
   year: number;
-
   electricityReading: number;
-
   waterReading: number;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,15 +18,14 @@ const meterReadingSchema = new Schema<IMeterReading>(
       required: true,
       index: true,
     },
-
     month: { type: Number, required: true, min: 1, max: 12 },
-    year: { type: Number, required: true, min: 2020, max: 2030 },
-
+    year: { type: Number, required: true, min: 2020, max: 2050 },
     electricityReading: { type: Number, required: true, min: 0 },
-
     waterReading: { type: Number, required: true, min: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+meterReadingSchema.index({ roomId: 1, month: 1, year: 1 }, { unique: true });
 
 export default model<IMeterReading>("MeterReading", meterReadingSchema);

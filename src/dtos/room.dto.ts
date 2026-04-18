@@ -34,6 +34,10 @@ export class UpdateRoomDto {
   number?: string;
 
   @IsOptional()
+  @IsString()
+  buildingId?: string;
+
+  @IsOptional()
   @IsNumber()
   floor?: number;
 
@@ -54,12 +58,12 @@ export class UpdateRoomDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  waterUnitPrice?: number;
+  waterPricePerPerson?: number;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
-  internetFee?: number;
+  waterPricePerCubicMeter?: number;
 
   @IsOptional()
   @IsNumber()
@@ -69,22 +73,52 @@ export class UpdateRoomDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  serviceFee?: number;
+  livingFee?: number;
 
   @IsOptional()
   @IsEnum(ROOMSTATUS)
   status?: ROOMSTATUS;
 
   @IsOptional()
-  @IsString()
-  currentTenant?: string;
+  members?: MemberUpdateDto[];
 
   @IsOptional()
   @IsString()
   description?: string;
 }
 
-export class AssignTenantDto {
+export class MemberUpdateDto {
+  @IsOptional()
+  _id?: string;
+
+  @IsOptional()
   @IsString()
-  userId!: string;
+  userId?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  licensePlate?: string;
+
+  @IsOptional()
+  cccdImages?: {
+    front: {
+      url?: string; // Base64 string hoặc URL từ Cloudinary (backend sẽ tự upload nếu là base64)
+      publicId?: string; // Không cần gửi, backend sẽ tự động xử lý
+    };
+    back: {
+      url?: string; // Base64 string hoặc URL từ Cloudinary (backend sẽ tự upload nếu là base64)
+      publicId?: string; // Không cần gửi, backend sẽ tự động xử lý
+    };
+  };
+
+  @IsOptional()
+  isRepresentative?: boolean;
 }

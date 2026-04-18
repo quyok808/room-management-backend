@@ -11,8 +11,7 @@ export class InvoiceService {
   // Helper function to fill base fees
   private static fillBaseFees(room: any, roomData: InvoicePreviewItem) {
     roomData.rentAmount = room.price || 0;
-    roomData.serviceFee = room.serviceFee || 0;
-    roomData.internetFee = room.internetFee || 0;
+    roomData.livingFee = room.livingFee || 0;
     roomData.parkingFee = room.parkingFee || 0;
     roomData.otherFee = 0;
     roomData.electricityUsage = 0;
@@ -34,8 +33,7 @@ export class InvoiceService {
 
     roomData.totalAmount =
       (roomData.rentAmount || 0) +
-      (roomData.serviceFee || 0) +
-      (roomData.internetFee || 0) +
+      (roomData.livingFee || 0) +
       (roomData.parkingFee || 0) +
       waterCost;
   }
@@ -125,8 +123,7 @@ export class InvoiceService {
           roomData.waterCost = existingInvoice.waterCost;
 
           roomData.rentAmount = existingInvoice.rentAmount;
-          roomData.serviceFee = existingInvoice.serviceFee;
-          roomData.internetFee = existingInvoice.internetFee;
+          roomData.livingFee = existingInvoice.livingFee;
           roomData.parkingFee = existingInvoice.parkingFee;
           roomData.otherFee = existingInvoice.otherFee;
 
@@ -204,8 +201,7 @@ export class InvoiceService {
 
         // 13. Tổng các phí
         const rentAmount = room.price || 0;
-        const serviceFee = room.serviceFee || 0;
-        const internetFee = room.internetFee || 0;
+        const livingFee = room.livingFee || 0;
         const parkingFee = room.parkingFee || 0;
         const otherFee = 0;
 
@@ -213,8 +209,7 @@ export class InvoiceService {
           electricityCost +
           waterCost +
           rentAmount +
-          serviceFee +
-          internetFee +
+          livingFee +
           parkingFee +
           otherFee;
 
@@ -224,8 +219,7 @@ export class InvoiceService {
         roomData.waterUsage = waterUsage;
         roomData.waterCost = waterCost;
         roomData.rentAmount = rentAmount;
-        roomData.serviceFee = serviceFee;
-        roomData.internetFee = internetFee;
+        roomData.livingFee = livingFee;
         roomData.parkingFee = parkingFee;
         roomData.otherFee = otherFee;
         roomData.totalAmount = totalAmount;
@@ -442,19 +436,12 @@ export class InvoiceService {
 
         // Tổng các phí
         const rentAmount = room.price || 0;
-        const serviceFee = room.serviceFee || 0;
-        const internetFee = room.internetFee || 0;
+        const livingFee = room.livingFee || 0;
         const parkingFee = room.parkingFee || 0;
         const otherFee = 0;
 
         const totalAmount =
-          electricityCost +
-          waterCost +
-          rentAmount +
-          serviceFee +
-          internetFee +
-          parkingFee +
-          otherFee;
+          waterCost + rentAmount + livingFee + parkingFee + otherFee;
 
         // Create invoice document với validation
         const invoiceData = {
@@ -473,9 +460,8 @@ export class InvoiceService {
           waterUnitPrice: waterPricePerCubicMeter || 0,
           waterCost,
           rentAmount,
-          internetFee,
           parkingFee,
-          serviceFee,
+          livingFee,
           otherFee,
           totalAmount,
           dueDate:
@@ -568,7 +554,7 @@ export class InvoiceService {
     const [invoices, total] = await Promise.all([
       Invoice.find(filter)
         .select(
-          "tenantId roomId month year electricityPrevious electricityCurrent electricityUsage electricityUnitPrice electricityCost waterPrevious waterCurrent waterUsage waterUnitPrice waterCost rentAmount internetFee parkingFee serviceFee otherFee totalAmount dueDate notes status createdAt updatedAt",
+          "tenantId roomId month year electricityPrevious electricityCurrent electricityUsage electricityUnitPrice electricityCost waterPrevious waterCurrent waterUsage waterUnitPrice waterCost rentAmount parkingFee livingFee otherFee totalAmount dueDate notes status createdAt updatedAt",
         )
         .populate("tenantId", "name email phone")
         .populate("roomId", "number")

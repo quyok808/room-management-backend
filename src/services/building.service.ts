@@ -20,7 +20,6 @@ interface CreateBuildingInput {
     waterUnitPrice: number;
     waterPricePerPerson?: number;
     waterPricePerCubicMeter?: number;
-    internetFee?: number;
     parkingFee?: number;
     serviceFee?: number;
     description?: string;
@@ -39,13 +38,14 @@ export const createBuilding = async (
     ownerId: data.ownerId,
   };
 
-  if (data.description !== undefined) buildingData.description = data.description;
+  if (data.description !== undefined)
+    buildingData.description = data.description;
   if (data.utilities !== undefined) buildingData.utilities = data.utilities;
 
   const building = await Building.create(buildingData);
 
   // Create rooms from frontend data
-  const rooms = data.rooms.map(room => ({
+  const rooms = data.rooms.map((room) => ({
     ...room,
     buildingId: building._id,
     status: "available",

@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsEmail, IsOptional, IsArray, ValidateNested } from "class-validator";
+import {
+  IsString,
+  IsNumber,
+  IsEmail,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+} from "class-validator";
 import { Type } from "class-transformer";
 
 class CreateRoomDto {
@@ -21,10 +28,6 @@ class CreateRoomDto {
   @IsOptional()
   @IsNumber()
   waterPricePerCubicMeter?: number;
-
-  @IsOptional()
-  @IsNumber()
-  internetFee?: number;
 
   @IsOptional()
   @IsNumber()
@@ -51,9 +54,6 @@ export class CreateBuildingDto {
 
   @IsString()
   city!: string;
-
-
-
 
   @IsOptional()
   @IsString()
@@ -119,10 +119,6 @@ export class UpdateBuildingDto {
   @IsOptional()
   @IsNumber()
   defaultWaterUnitPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  defaultInternetFee?: number;
 
   @IsOptional()
   @IsNumber()

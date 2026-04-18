@@ -7,8 +7,8 @@ export interface IUser extends Document {
   password: string;
   role: ROLE;
   phone?: string;
-  cccd?: string;
-  cccdImages: {
+  licensePlate: string;
+  cccdImages?: {
     front: { url: string; publicId: string };
     back: { url: string; publicId: string };
   };
@@ -27,7 +27,7 @@ const userSchema = new Schema<IUser>(
       default: ROLE.TENANT,
     },
     phone: { type: String, default: "" },
-    cccd: { type: String, default: "" },
+    licensePlate: { type: String, default: "" },
     cccdImages: {
       front: {
         url: { type: String, default: "" },
