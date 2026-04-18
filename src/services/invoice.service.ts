@@ -52,7 +52,7 @@ export class InvoiceService {
 
     const rooms = await Room.find(roomFilter)
       .populate("buildingId", "name")
-      .populate("currentTenant", "fullName");
+      .populate("members.userId", "fullName");
 
     if (rooms.length === 0) {
       return results;
@@ -316,7 +316,7 @@ export class InvoiceService {
       _id: { $in: validRoomIds.map((id) => new Types.ObjectId(id)) },
     })
       .populate("buildingId", "name")
-      .populate("currentTenant", "fullName");
+      .populate("members.userId", "fullName");
 
     const allRoomIds = rooms.map((r) => r._id);
 
@@ -360,7 +360,7 @@ export class InvoiceService {
     for (const room of rooms) {
       try {
         // 4. Chặn phòng chưa có tenant
-        if (!room.currentTenant?._id) {
+        if (!room.members || room.members.length === 0) {
           failed.push({
             roomId: room._id.toString(),
             roomName: room.number,
@@ -445,7 +445,7 @@ export class InvoiceService {
 
         // Create invoice document với validation
         const invoiceData = {
-          tenantId: room.currentTenant._id, // Bắt buộc có tenant
+          tenantId: room.members[0]?.userId, // Lấy member đầu tiên làm tenant
           roomId: room._id,
           month,
           year,
