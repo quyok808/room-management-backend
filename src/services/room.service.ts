@@ -2,24 +2,204 @@ import Room, { IRoom } from "../models/room.model";
 import Building from "../models/building.model";
 import { UpdateRoomDto } from "../dtos/room.dto";
 import { getBuildingById } from "./building.service";
-import { ROOMSTATUS, TenantStatus } from "../utils/app.constants";
+import { ROOMSTATUS } from "../utils/app.constants";
 import { Types } from "mongoose";
-import Tenant from "../models/tenant.model";
-import Payment from "../models/payment.model";
-import MeterReading from "../models/MeterReading.model";
+import PaymentTransaction from "../models/payment-transaction.model";
+import {
+  PaginationUtil,
+  PaginationParams,
+  PaginatedResponse,
+} from "../utils/pagination.util";
+import { v2 as cloudinary } from "cloudinary";
+
+const deleteImageFromCloudinary = async (publicId: string): Promise<void> => {
+  if (!publicId || publicId === "") return;
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {}
+};
+
+const uploadImageToCloudinary = async (
+  base64String: string,
+): Promise<{ url: string; publicId: string }> => {
+  if (!base64String || base64String === "") {
+    return { url: "", publicId: "" };
+  }
+
+  if (!base64String.startsWith("data:image/")) {
+    return { url: base64String, publicId: "" };
+  }
+
+  try {
+    const result = await cloudinary.uploader.upload(base64String, {
+      folder: "users_cccd",
+      allowed_formats: ["jpg", "png", "jpeg", "webp"],
+    });
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
+  } catch (error) {
+    throw new Error("Không thể upload ảnh lên Cloudinary");
+  }
+};
 
 export const updateRoom = async (
   roomId: string,
   data: UpdateRoomDto,
   ownerId: string,
 ): Promise<IRoom | null> => {
-  const room = await Room.findById(roomId);
-  if (!room) return null;
+  const room = await Room.findOne({ _id: roomId, isDeleted: false });
+  if (!room) throw new Error("Không tìm thấy phòng hoặc phòng đã bị xóa");
 
-  const building = await getBuildingById(room.buildingId.toString());
-  if (!building || building.ownerId.toString() !== ownerId) return null;
+  const building = await Building.findOne({ _id: room.buildingId, ownerId });
+  if (!building) throw new Error("Bạn không có quyền chỉnh sửa phòng này");
 
-  const updatedRoom = await Room.findByIdAndUpdate(roomId, data, { new: true });
+  if (data.number && data.number !== room.number) {
+    const existingRoom = await Room.findOne({
+      buildingId: room.buildingId,
+      number: data.number,
+      _id: { $ne: roomId },
+      isDeleted: false,
+    });
+    if (existingRoom)
+      throw new Error(`Số phòng ${data.number} đã tồn tại trong tòa nhà này`);
+  }
+
+  let updatedMembers: any[] = room.toObject().members;
+
+  if (data.members) {
+    const repCount = data.members.filter((m) => m.isRepresentative).length;
+    if (repCount > 1)
+      throw new Error("Một phòng chỉ được có duy nhất một người đại diện");
+
+    const incomingMemberIds = data.members
+      .filter((m) => m._id)
+      .map((m) => m._id!.toString());
+
+    const removedMembers = updatedMembers.filter(
+      (m) => !incomingMemberIds.includes(m._id.toString()),
+    );
+
+    for (const removedMember of removedMembers) {
+      await deleteImageFromCloudinary(removedMember.cccdImages.front.publicId);
+      await deleteImageFromCloudinary(removedMember.cccdImages.back.publicId);
+    }
+
+    updatedMembers = updatedMembers.filter((m) =>
+      incomingMemberIds.includes(m._id.toString()),
+    );
+
+    for (const memberData of data.members) {
+      const userId =
+        memberData.userId && memberData.userId.toString().length === 24
+          ? new Types.ObjectId(memberData.userId)
+          : null;
+
+      if (memberData._id) {
+        const index = updatedMembers.findIndex(
+          (m) => m._id.toString() === memberData._id?.toString(),
+        );
+        if (index !== -1) {
+          const existingMember = updatedMembers[index];
+          let frontImageData = {
+            url: existingMember.cccdImages.front.url,
+            publicId: existingMember.cccdImages.front.publicId,
+          };
+          let backImageData = {
+            url: existingMember.cccdImages.back.url,
+            publicId: existingMember.cccdImages.back.publicId,
+          };
+
+          if (memberData.cccdImages?.front?.url) {
+            const uploadedFront = await uploadImageToCloudinary(
+              memberData.cccdImages.front.url,
+            );
+            if (
+              uploadedFront.url !== existingMember.cccdImages.front.url &&
+              uploadedFront.publicId
+            ) {
+              await deleteImageFromCloudinary(
+                existingMember.cccdImages.front.publicId,
+              );
+            }
+            frontImageData = uploadedFront;
+          }
+
+          if (memberData.cccdImages?.back?.url) {
+            const uploadedBack = await uploadImageToCloudinary(
+              memberData.cccdImages.back.url,
+            );
+            if (
+              uploadedBack.url !== existingMember.cccdImages.back.url &&
+              uploadedBack.publicId
+            ) {
+              await deleteImageFromCloudinary(
+                existingMember.cccdImages.back.publicId,
+              );
+            }
+            backImageData = uploadedBack;
+          }
+
+          updatedMembers[index] = {
+            ...existingMember,
+            ...memberData,
+            cccdImages: {
+              front: frontImageData,
+              back: backImageData,
+            },
+            _id: new Types.ObjectId(memberData._id),
+            userId,
+          };
+        }
+      } else {
+        const frontImageData = memberData.cccdImages?.front?.url
+          ? await uploadImageToCloudinary(memberData.cccdImages.front.url)
+          : { url: "", publicId: "" };
+        const backImageData = memberData.cccdImages?.back?.url
+          ? await uploadImageToCloudinary(memberData.cccdImages.back.url)
+          : { url: "", publicId: "" };
+
+        updatedMembers.push({
+          name: memberData.name || "",
+          phone: memberData.phone || "",
+          licensePlate: memberData.licensePlate || "",
+          isRepresentative: !!memberData.isRepresentative,
+          cccdImages: {
+            front: frontImageData,
+            back: backImageData,
+          },
+          _id: new Types.ObjectId(),
+          userId,
+        });
+      }
+    }
+  }
+
+  let newStatus = data.status || room.status;
+  if (updatedMembers.length > 0 && newStatus === ROOMSTATUS.AVAILABLE) {
+    newStatus = ROOMSTATUS.OCCUPIED;
+  } else if (
+    updatedMembers.length === 0 &&
+    newStatus !== ROOMSTATUS.MAINTENANCE
+  ) {
+    newStatus = ROOMSTATUS.AVAILABLE;
+  }
+
+  const { buildingId, members, ...safeUpdateData } = data;
+
+  const updatedRoom = await Room.findByIdAndUpdate(
+    roomId,
+    {
+      ...safeUpdateData,
+      members: updatedMembers,
+      status: newStatus,
+    },
+    { new: true, runValidators: true },
+  )
+    .populate("buildingId", "name")
+    .populate("members.userId", "name email phone");
+
   return updatedRoom;
 };
 
@@ -30,8 +210,8 @@ export const deleteRoom = async (
   const room = await Room.findById(roomId);
   if (!room) return null;
 
-  if (room.currentTenant) {
-    throw new Error("Cannot delete room that has a tenant");
+  if (room.members && room.members.length > 0) {
+    throw new Error("Cannot delete room that has tenants");
   }
 
   const building = await getBuildingById(room.buildingId.toString());
@@ -48,70 +228,6 @@ export const deleteRoom = async (
   return deletedRoom;
 };
 
-export const assignTenant = async (
-  roomId: string,
-  userId: string,
-  ownerId: string,
-): Promise<IRoom | null> => {
-  const room = await Room.findById(roomId);
-  if (!room) return null;
-
-  const building = await getBuildingById(room.buildingId.toString());
-  if (!building || building.ownerId.toString() !== ownerId) return null;
-
-  if (room.status !== ROOMSTATUS.AVAILABLE) {
-    throw new Error("Room is not available for assignment");
-  }
-
-  await Tenant.create({
-    userId: new Types.ObjectId(userId),
-    roomId: new Types.ObjectId(roomId),
-    moveInDate: new Date(),
-    contractEndDate: null,
-    emergencyContact: "",
-    status: TenantStatus.ACTIVE,
-  });
-
-  room.currentTenant = new Types.ObjectId(userId);
-  room.status = ROOMSTATUS.OCCUPIED;
-  await room.save();
-
-  return room;
-};
-
-export const removeTenant = async (
-  roomId: string,
-  ownerId: string,
-): Promise<IRoom | null> => {
-  const room = await Room.findById(roomId);
-  if (!room) return null;
-
-  const building = await getBuildingById(room.buildingId.toString());
-  if (!building || building.ownerId.toString() !== ownerId) return null;
-
-  if (!room.currentTenant) {
-    throw new Error("Room has no tenant to remove");
-  }
-
-  await Tenant.findOneAndUpdate(
-    {
-      roomId: new Types.ObjectId(roomId),
-      userId: room.currentTenant,
-      status: TenantStatus.ACTIVE,
-    },
-    {
-      status: TenantStatus.INACTIVE,
-      contractEndDate: new Date(),
-    },
-  );
-
-  room.set("currentTenant", undefined);
-  room.status = ROOMSTATUS.AVAILABLE;
-  await room.save();
-
-  return room;
-};
-
 export const getAllRooms = async (
   searchParams?: {
     number?: string;
@@ -119,11 +235,8 @@ export const getAllRooms = async (
     floor?: number;
     status?: ROOMSTATUS;
   },
-  pagination?: {
-    page?: number;
-    limit?: number;
-  },
-) => {
+  pagination?: PaginationParams,
+): Promise<PaginatedResponse<IRoom>> => {
   let query: any = {
     isDeleted: false,
   };
@@ -144,37 +257,19 @@ export const getAllRooms = async (
     query.status = searchParams.status;
   }
 
-  const page = Math.max(1, pagination?.page || 1);
-  const limit = Math.min(100, Math.max(1, pagination?.limit || 10));
-  const skip = (page - 1) * limit;
-
-  const total = await Room.countDocuments(query);
-  const totalPages = Math.ceil(total / limit);
-
-  const rooms = await Room.find(query)
-    .populate("buildingId", "name")
-    .populate("currentTenant", "name email")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  return {
-    rooms,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-    },
-  };
+  return await PaginationUtil.paginate(Room, query, pagination, {
+    populate: [
+      { path: "buildingId", select: "name" },
+      { path: "members.userId", select: "name email" },
+    ],
+    sort: { createdAt: -1 },
+  });
 };
 
 export const getRoomById = async (roomId: string): Promise<IRoom | null> => {
   const room = await Room.findOne({ _id: roomId, isDeleted: false })
     .populate("buildingId", "name")
-    .populate("currentTenant", "name email");
+    .populate("members.userId", "name email");
   return room;
 };
 
@@ -188,11 +283,29 @@ export const getOccupiedRooms = async (
     limit?: number;
   },
 ) => {
-  // Get room IDs that already have payments
-  const roomsWithPayments = await Payment.distinct('roomId');
+  // Get room IDs that already have payment transactions through invoices
+  const paymentTransactions = await PaymentTransaction.aggregate([
+    {
+      $lookup: {
+        from: "invoices",
+        localField: "invoiceId",
+        foreignField: "_id",
+        as: "invoice",
+      },
+    },
+    { $unwind: "$invoice" },
+    {
+      $group: {
+        _id: "$invoice.roomId",
+        hasPayments: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const roomsWithPayments = paymentTransactions.map((pt) => pt._id);
 
   let query: any = {
-    currentTenant: { $exists: true, $ne: null }, // Only rooms with current tenant
+    members: { $exists: true, $not: { $size: 0 } }, // Only rooms with members
     status: ROOMSTATUS.OCCUPIED,
     _id: { $nin: roomsWithPayments }, // Exclude rooms that have payments
     isDeleted: false,
@@ -217,7 +330,7 @@ export const getOccupiedRooms = async (
 
   const rooms = await Room.find(query)
     .populate("buildingId", "name")
-    .populate("currentTenant", "name email")
+    .populate("members.userId", "name email")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -236,7 +349,12 @@ export const getOccupiedRooms = async (
 };
 
 export const getRoomByUserId = (userId: string) => {
-  return Room.findOne({ currentTenant: userId, isDeleted: false }).populate("buildingId", "name");
+  return Room.findOne({
+    "members.userId": userId,
+    isDeleted: false,
+  })
+    .populate("buildingId", "name")
+    .populate("members.userId", "name email");
 };
 
 export const getRoomsWithMeterReadings = async (
@@ -301,14 +419,14 @@ export const getRoomsWithMeterReadings = async (
     {
       $lookup: {
         from: "users",
-        localField: "currentTenant",
+        localField: "members.userId",
         foreignField: "_id",
-        as: "tenant",
+        as: "members",
       },
     },
     {
       $unwind: {
-        path: "$tenant",
+        path: "$members",
         preserveNullAndEmptyArrays: true,
       },
     },
@@ -349,9 +467,8 @@ export const getRoomsWithMeterReadings = async (
         electricityUnitPrice: 1,
         waterPricePerPerson: 1,
         waterPricePerCubicMeter: 1,
-        internetFee: 1,
         parkingFee: 1,
-        serviceFee: 1,
+        livingFee: 1,
         status: 1,
         description: 1,
         createdAt: 1,
@@ -361,11 +478,15 @@ export const getRoomsWithMeterReadings = async (
           name: 1,
           address: 1,
         },
-        tenant: {
-          _id: 1,
+        members: {
+          userId: 1,
           name: 1,
           email: 1,
           phone: 1,
+          moveInDate: 1,
+          contractEndDate: 1,
+          isRepresentative: 1,
+          emergencyContact: 1,
         },
         meterReading: {
           _id: 1,

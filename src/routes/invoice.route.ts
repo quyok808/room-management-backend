@@ -15,4 +15,7 @@ router.get("/", InvoiceController.getInvoices);
 // GET /invoices/:id - lấy chi tiết hóa đơn
 router.get("/:id", InvoiceController.getInvoiceById);
 
+// DELETE /invoices/:id - xóa hóa đơn
+router.delete("/:id", InvoiceController.deleteInvoice);
+
 export default router;

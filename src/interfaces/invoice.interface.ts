@@ -7,8 +7,7 @@ export interface InvoicePreviewItem {
   waterUsage?: number;
   waterCost?: number;
   rentAmount?: number;
-  serviceFee?: number;
-  internetFee?: number;
+  livingFee?: number;
   parkingFee?: number;
   otherFee?: number;
   totalAmount?: number;

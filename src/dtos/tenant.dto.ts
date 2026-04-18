@@ -1,4 +1,10 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsDateString } from "class-validator";
+import {
+  IsString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+} from "class-validator";
 import { TenantStatus } from "../utils/app.constants";
 
 export class CreateTenantDto {

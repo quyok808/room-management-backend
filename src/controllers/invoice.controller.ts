@@ -207,4 +207,46 @@ export class InvoiceController {
       });
     }
   }
+
+  static async deleteInvoice(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      if (!id || typeof id !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "ID hóa đơn là bắt buộc",
+        });
+      }
+
+      const invoice = await InvoiceService.deleteInvoice(id);
+
+      res.json({
+        success: true,
+        message: "Xóa hóa đơn thành công",
+        data: invoice,
+      });
+    } catch (error: any) {
+      console.error("Error in deleteInvoice:", error);
+
+      if (error.message === "ID hóa đơn không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      if (error.message === "Không tìm thấy hóa đơn") {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Lỗi server",
+      });
+    }
+  }
 }

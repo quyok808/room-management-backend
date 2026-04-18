@@ -7,9 +7,11 @@ import userRoutes from "./routes/user.route";
 import buildingRoutes from "./routes/building.route";
 import roomRoutes from "./routes/room.route";
 import tenantRoutes from "./routes/tenant.route";
-import paymentRoutes from "./routes/payment.route";
 import meterReadingRoutes from "./routes/meterReading.route";
 import invoiceRoutes from "./routes/invoice.route";
+import expenseRoutes from "./routes/expense.route";
+import paymentTransactionRoutes from "./routes/payment-transaction.route";
+import dashboardRoutes from "./routes/dashboard.route";
 
 const app = express();
 
@@ -26,8 +28,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/buildings", buildingRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/tenants", tenantRoutes);
-app.use("/api/payments", paymentRoutes);
 app.use("/api/meter-readings", meterReadingRoutes);
 app.use("/api/invoices", invoiceRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/payments", paymentTransactionRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 export default app;

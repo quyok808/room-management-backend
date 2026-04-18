@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { createUser, getUser, getAllUsersController, deleteUserController, updateUserController, getNonTenantUsersController } from "../controllers/user.controller";
+import {
+  createUser,
+  getUser,
+  getAllUsersController,
+  deleteUserController,
+  updateUserController,
+  getNonTenantUsersController,
+} from "../controllers/user.controller";
 import { uploadCloud } from "../config/cloudinary.config";
 import { validateDto } from "../middlewares/validate.middleware";
 import { CreateUserDto, UpdateUserDto } from "../dtos/user.dto";
@@ -14,16 +21,50 @@ const uploadFields = uploadCloud.fields([
   { name: "cccdBack", maxCount: 1 },
 ]);
 
-router.post("/create", authMiddleware, requireRole([ROLE.OWNER]), uploadFields, validateDto(CreateUserDto),createUser);
+router.post(
+  "/create",
+  authMiddleware,
+  requireRole([ROLE.OWNER]),
+  uploadFields,
+  validateDto(CreateUserDto),
+  createUser,
+);
 
-router.get("/non-tenants", authMiddleware, requireRole([ROLE.OWNER]), getNonTenantUsersController);
+router.get(
+  "/non-tenants",
+  authMiddleware,
+  requireRole([ROLE.OWNER]),
+  getNonTenantUsersController,
+);
 
-router.get("/", authMiddleware, requireRole([ROLE.OWNER]), getAllUsersController);
+router.get(
+  "/",
+  authMiddleware,
+  requireRole([ROLE.OWNER]),
+  getAllUsersController,
+);
 
-router.get("/:id", authMiddleware, requireRole([ROLE.OWNER, ROLE.TENANT]), getUser);
+router.get(
+  "/:id",
+  authMiddleware,
+  requireRole([ROLE.OWNER, ROLE.TENANT]),
+  getUser,
+);
 
-router.put("/:id", authMiddleware, requireRole([ROLE.OWNER, ROLE.TENANT]), uploadFields, validateDto(UpdateUserDto), updateUserController);
+router.put(
+  "/:id",
+  authMiddleware,
+  requireRole([ROLE.OWNER, ROLE.TENANT]),
+  uploadFields,
+  validateDto(UpdateUserDto),
+  updateUserController,
+);
 
-router.delete("/:id", authMiddleware, requireRole([ROLE.OWNER]), deleteUserController);
+router.delete(
+  "/:id",
+  authMiddleware,
+  requireRole([ROLE.OWNER]),
+  deleteUserController,
+);
 
 export default router;
