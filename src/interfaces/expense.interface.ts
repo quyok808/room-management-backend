@@ -1,8 +1,10 @@
 export interface CreateExpenseInput {
   buildingId: string;
-  title: string;
-  description?: string;
-  amount: number;
+  electricityAmount: number;
+  waterAmount: number;
+  houseAmount: number;
+  livingFeeAmount: number;
+  otherFee: number;
   expenseDate: Date;
 }
 

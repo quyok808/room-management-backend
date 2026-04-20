@@ -2,9 +2,11 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface IExpense extends Document {
   buildingId: Types.ObjectId;
-  title: string;
-  description?: string;
-  amount: number;
+  electricityAmount: number;
+  waterAmount: number;
+  houseAmount: number;
+  livingFeeAmount: number;
+  otherFee: number;
   expenseDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -18,9 +20,11 @@ const expenseSchema = new Schema<IExpense>(
       required: true,
       index: true,
     },
-    title: { type: String, required: true },
-    description: { type: String, default: "" },
-    amount: { type: Number, required: true, min: 0 },
+    electricityAmount: { type: Number, required: true, min: 0 },
+    waterAmount: { type: Number, required: true, min: 0 },
+    houseAmount: { type: Number, required: true, min: 0 },
+    livingFeeAmount: { type: Number, required: true, min: 0 },
+    otherFee: { type: Number, required: true, min: 0 },
     expenseDate: { type: Date, required: true },
   },
   { timestamps: true },
