@@ -12,23 +12,48 @@ import { CreateExpenseInput } from "../interfaces/expense.interface";
 
 export const createExpenseController = async (req: Request, res: Response) => {
   try {
-    const { buildingId, title, description, amount, expenseDate } = req.body;
+    const {
+      buildingId,
+      electricityAmount,
+      waterAmount,
+      houseAmount,
+      livingFeeAmount,
+      otherFee,
+      expenseDate,
+    } = req.body;
 
     // Validate required fields
-    if (!buildingId || !title || !amount || !expenseDate) {
+    if (
+      !buildingId ||
+      !electricityAmount ||
+      !waterAmount ||
+      !houseAmount ||
+      !livingFeeAmount ||
+      !otherFee ||
+      !expenseDate
+    ) {
       return res.status(400).json({
         success: false,
         message:
-          "Thiếu các trường bắt buộc: buildingId, title, amount, expenseDate",
+          "Thiếu các trường bắt buộc: buildingId, electricityAmount, waterAmount, houseAmount, livingFeeAmount, otherFee, expenseDate",
       });
     }
 
-    // Validate amount
-    if (isNaN(amount) || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Số tiền phải là số dương",
-      });
+    // Validate amounts
+    const amounts = [
+      electricityAmount,
+      waterAmount,
+      houseAmount,
+      livingFeeAmount,
+      otherFee,
+    ];
+    for (const amount of amounts) {
+      if (isNaN(amount) || amount < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Tất cả các khoản tiền phải là số dương",
+        });
+      }
     }
 
     // Validate expenseDate
@@ -42,9 +67,11 @@ export const createExpenseController = async (req: Request, res: Response) => {
 
     const expense = await createExpense({
       buildingId,
-      title,
-      description,
-      amount: parseFloat(amount),
+      electricityAmount: parseFloat(electricityAmount),
+      waterAmount: parseFloat(waterAmount),
+      houseAmount: parseFloat(houseAmount),
+      livingFeeAmount: parseFloat(livingFeeAmount),
+      otherFee: parseFloat(otherFee),
       expenseDate: expenseDateObj,
     });
 
@@ -149,7 +176,15 @@ export const getExpenseByIdController = async (req: Request, res: Response) => {
 export const updateExpenseController = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { buildingId, title, description, amount, expenseDate } = req.body;
+    const {
+      buildingId,
+      electricityAmount,
+      waterAmount,
+      houseAmount,
+      livingFeeAmount,
+      otherFee,
+      expenseDate,
+    } = req.body;
 
     if (!id || typeof id !== "string") {
       return res.status(400).json({
@@ -158,12 +193,21 @@ export const updateExpenseController = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate amount if provided
-    if (amount !== undefined && (isNaN(amount) || amount <= 0)) {
-      return res.status(400).json({
-        success: false,
-        message: "Số tiền phải là số dương",
-      });
+    // Validate amounts if provided
+    const amounts = [
+      electricityAmount,
+      waterAmount,
+      houseAmount,
+      livingFeeAmount,
+      otherFee,
+    ];
+    for (const amount of amounts) {
+      if (amount !== undefined && (isNaN(amount) || amount < 0)) {
+        return res.status(400).json({
+          success: false,
+          message: "Tất cả các khoản tiền phải là số dương",
+        });
+      }
     }
 
     // Validate expenseDate if provided
@@ -179,9 +223,15 @@ export const updateExpenseController = async (req: Request, res: Response) => {
 
     const updateData: any = {
       buildingId: buildingId ? new Types.ObjectId(buildingId) : undefined,
-      title,
-      description,
-      amount: amount ? parseFloat(amount) : undefined,
+      electricityAmount: electricityAmount
+        ? parseFloat(electricityAmount)
+        : undefined,
+      waterAmount: waterAmount ? parseFloat(waterAmount) : undefined,
+      houseAmount: houseAmount ? parseFloat(houseAmount) : undefined,
+      livingFeeAmount: livingFeeAmount
+        ? parseFloat(livingFeeAmount)
+        : undefined,
+      otherFee: otherFee ? parseFloat(otherFee) : undefined,
       expenseDate: expenseDate ? new Date(expenseDate) : undefined,
     };
 

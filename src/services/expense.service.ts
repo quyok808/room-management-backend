@@ -8,17 +8,16 @@ import {
 export const createExpense = async (data: CreateExpenseInput) => {
   const expenseData = {
     buildingId: new Types.ObjectId(data.buildingId),
-    title: data.title,
-    description: data.description || "",
-    amount: data.amount,
+    electricityAmount: data.electricityAmount,
+    waterAmount: data.waterAmount,
+    houseAmount: data.houseAmount,
+    livingFeeAmount: data.livingFeeAmount,
+    otherFee: data.otherFee,
     expenseDate: data.expenseDate,
   };
 
   const expense = await Expense.create(expenseData);
-
-  // Populate building info for response
   await expense.populate("buildingId", "name");
-
   return expense;
 };
 
@@ -157,7 +156,22 @@ export const getExpensesByBuilding = async (month?: number, year?: number) => {
           year: { $year: "$expenseDate" },
         },
         buildingName: { $first: "$building.name" },
-        totalAmount: { $sum: "$amount" },
+        electricityAmount: { $sum: "$electricityAmount" },
+        waterAmount: { $sum: "$waterAmount" },
+        houseAmount: { $sum: "$houseAmount" },
+        livingFeeAmount: { $sum: "$livingFeeAmount" },
+        otherFee: { $sum: "$otherFee" },
+        totalAmount: {
+          $sum: {
+            $add: [
+              "$electricityAmount",
+              "$waterAmount",
+              "$houseAmount",
+              "$livingFeeAmount",
+              "$otherFee",
+            ],
+          },
+        },
         count: { $sum: 1 },
       },
     },
@@ -168,6 +182,11 @@ export const getExpensesByBuilding = async (month?: number, year?: number) => {
         buildingName: 1,
         month: "$_id.month",
         year: "$_id.year",
+        electricityAmount: 1,
+        waterAmount: 1,
+        houseAmount: 1,
+        livingFeeAmount: 1,
+        otherFee: 1,
         totalAmount: 1,
         count: 1,
       },
