@@ -1,8 +1,16 @@
 import Room from "../models/room.model";
 import { Types } from "mongoose";
 const archiver = require("archiver");
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+const chromium = require("@sparticuz/chromium") as ChromiumType;
 import { generatePaymentPDFContent } from "../templates/payment-receipt.template";
+
+type ChromiumType = {
+  args: string[];
+  defaultViewport: any;
+  executablePath: () => Promise<string>;
+  headless: boolean;
+};
 
 export interface PaymentExportData {
   invoiceId: string;
@@ -192,7 +200,12 @@ const generatePaymentPDF = async (
   payment: PaymentExportData,
 ): Promise<Buffer> => {
   const html = generatePaymentPDFContent(payment);
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
   const page = await browser.newPage();
   await page.setContent(html);
   const pdfUint8Array = await page.pdf({ format: "A4" });
