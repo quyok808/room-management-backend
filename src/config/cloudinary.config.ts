@@ -1,5 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const CloudinaryStorage =
+  require("multer-storage-cloudinary").CloudinaryStorage ||
+  require("multer-storage-cloudinary");
 import multer from "multer";
 
 const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } =
