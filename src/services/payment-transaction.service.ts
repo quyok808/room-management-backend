@@ -161,23 +161,23 @@ export const getRevenueByBuilding = async (month?: number, year?: number) => {
       $group: {
         _id: {
           buildingId: "$building._id",
+          buildingName: "$building.name",
           month: { $month: "$paidAt" },
           year: { $year: "$paidAt" },
         },
-        buildingName: { $first: "$building.name" },
         totalAmount: { $sum: "$amount" },
         count: { $sum: 1 },
       },
     },
     {
       $project: {
-        _id: 0, // Ẩn trường _id mặc định của group
+        _id: "$_id.buildingId",
         buildingId: "$_id.buildingId",
-        buildingName: 1,
+        buildingName: "$_id.buildingName",
         month: "$_id.month",
         year: "$_id.year",
-        totalAmount: 1,
-        count: 1,
+        totalAmount: "$totalAmount",
+        count: "$count",
       },
     },
     { $sort: { year: -1, month: -1, totalAmount: -1 } },
