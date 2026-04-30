@@ -1,0 +1,18 @@
+### Test Payment Export API
+POST http://localhost:3000/api/payments/export-zip
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "invoiceIds": ["69ec4b905e1eff7182d794ab"]
+}
+
+### Check existing payments
+GET http://localhost:3000/api/payments
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### Check specific payment
+GET http://localhost:3000/api/payments/507f1f77bcf86cd799439011
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE

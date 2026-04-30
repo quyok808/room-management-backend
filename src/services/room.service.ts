@@ -70,8 +70,9 @@ export const updateRoom = async (
 
   if (data.members) {
     const repCount = data.members.filter((m) => m.isRepresentative).length;
-    if (repCount > 1)
+    if (repCount > 1) {
       throw new Error("Một phòng chỉ được có duy nhất một người đại diện");
+    }
 
     const incomingMemberIds = data.members
       .filter((m) => m._id)
@@ -176,16 +177,6 @@ export const updateRoom = async (
     }
   }
 
-  let newStatus = data.status || room.status;
-  if (updatedMembers.length > 0 && newStatus === ROOMSTATUS.AVAILABLE) {
-    newStatus = ROOMSTATUS.OCCUPIED;
-  } else if (
-    updatedMembers.length === 0 &&
-    newStatus !== ROOMSTATUS.MAINTENANCE
-  ) {
-    newStatus = ROOMSTATUS.AVAILABLE;
-  }
-
   const { buildingId, members, ...safeUpdateData } = data;
 
   const updatedRoom = await Room.findByIdAndUpdate(
@@ -193,7 +184,6 @@ export const updateRoom = async (
     {
       ...safeUpdateData,
       members: updatedMembers,
-      status: newStatus,
     },
     { new: true, runValidators: true },
   )
@@ -269,7 +259,8 @@ export const getAllRooms = async (
 export const getRoomById = async (roomId: string): Promise<IRoom | null> => {
   const room = await Room.findOne({ _id: roomId, isDeleted: false })
     .populate("buildingId", "name")
-    .populate("members.userId", "name email");
+    .populate("members.userId", "name email")
+    .lean();
   return room;
 };
 
@@ -495,6 +486,7 @@ export const getRoomsWithMeterReadings = async (
           electricityReading: 1,
           waterReading: 1,
           createdAt: 1,
+          updatedAt: 1,
         },
       },
     },

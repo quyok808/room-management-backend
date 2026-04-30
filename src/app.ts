@@ -11,6 +11,7 @@ import meterReadingRoutes from "./routes/meterReading.route";
 import invoiceRoutes from "./routes/invoice.route";
 import expenseRoutes from "./routes/expense.route";
 import paymentTransactionRoutes from "./routes/payment-transaction.route";
+import paymentExportRoutes from "./routes/payment-export.route";
 import dashboardRoutes from "./routes/dashboard.route";
 
 const app = express();
@@ -32,6 +33,7 @@ app.use("/api/meter-readings", meterReadingRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/payments", paymentTransactionRoutes);
+app.use("/api/payments", paymentExportRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 export default app;

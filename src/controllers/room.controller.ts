@@ -17,7 +17,18 @@ export const getAllRoomsController = async (req: Request, res: Response) => {
     const { number, buildingId, floor, status } = req.query;
     const searchParams: any = {};
     if (number) searchParams.number = number as string;
-    if (buildingId) searchParams.buildingId = buildingId as string;
+
+    // Handle buildingId - convert object to string if needed
+    if (buildingId) {
+      if (typeof buildingId === "object") {
+        console.error("buildingId is object:", buildingId);
+        return res.status(400).json({
+          message: "buildingId must be a string, not an object",
+        });
+      }
+      searchParams.buildingId = buildingId as string;
+    }
+
     if (floor) searchParams.floor = parseInt(floor as string);
     if (status) searchParams.status = status as ROOMSTATUS;
 
@@ -139,7 +150,15 @@ export const getOccupiedRoomsController = async (
 
     // Build search params
     const searchParams: any = {};
-    if (buildingId) searchParams.buildingId = buildingId as string;
+    if (buildingId) {
+      if (typeof buildingId === "object") {
+        console.error("buildingId is object in getOccupiedRooms:", buildingId);
+        return res.status(400).json({
+          message: "buildingId must be a string, not an object",
+        });
+      }
+      searchParams.buildingId = buildingId as string;
+    }
     if (floor) searchParams.floor = parseInt(floor as string);
 
     // Build pagination
@@ -221,7 +240,18 @@ export const getRoomsWithMeterReadingsController = async (
 
     // Build search params
     const searchParams: any = {};
-    if (buildingId) searchParams.buildingId = buildingId as string;
+    if (buildingId) {
+      if (typeof buildingId === "object") {
+        console.error(
+          "buildingId is object in getRoomsWithMeterReadings:",
+          buildingId,
+        );
+        return res.status(400).json({
+          message: "buildingId must be a string, not an object",
+        });
+      }
+      searchParams.buildingId = buildingId as string;
+    }
     if (roomNumber) searchParams.roomNumber = roomNumber as string;
     if (buildingName) searchParams.buildingName = buildingName as string;
 

@@ -11,7 +11,7 @@ import { ROLE } from "../utils/app.constants";
 
 export const createMeterReadingController = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const currentUser = (req as any).user;
@@ -35,7 +35,10 @@ export const createMeterReadingController = async (
   }
 };
 
-export const getMeterReadingsController = async (req: Request, res: Response) => {
+export const getMeterReadingsController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { roomId, month, year, page, limit } = req.query;
     const currentUser = (req as any).user;
@@ -56,7 +59,7 @@ export const getMeterReadingsController = async (req: Request, res: Response) =>
       monthNum,
       yearNum,
       pageNum,
-      limitNum
+      limitNum,
     );
 
     return res.status(200).json({
@@ -73,7 +76,7 @@ export const getMeterReadingsController = async (req: Request, res: Response) =>
 
 export const getMeterReadingByIdController = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -112,7 +115,7 @@ export const getMeterReadingByIdController = async (
 
 export const updateMeterReadingController = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -151,7 +154,7 @@ export const updateMeterReadingController = async (
 
 export const deleteMeterReadingController = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -189,34 +192,34 @@ export const deleteMeterReadingController = async (
 
 export const bulkUpsertMeterReadingsController = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const currentUser = (req as any).user;
 
     if (currentUser.role !== ROLE.OWNER) {
       return res.status(403).json({
-        message: "Chỉ chủ nhà mới có thể thêm/cập nhật chỉ số điện nước hàng loạt",
+        message:
+          "Chỉ chủ nhà mới có thể thêm/cập nhật chỉ số điện nước hàng loạt",
       });
     }
 
     const result = await bulkUpsertMeterReadings(req.body);
 
     if (result.errors.length > 0 && result.success.length === 0) {
-      // All operations failed
       return res.status(400).json({
         message: "Tất cả thao tác thất bại",
         errors: result.errors,
+        errorRoomIds: result.errorRoomIds,
       });
     } else if (result.errors.length > 0) {
-      // Some operations failed
       return res.status(207).json({
         message: "Một số thao tác thành công, một số thất bại",
         success: result.success,
         errors: result.errors,
+        errorRoomIds: result.errorRoomIds,
       });
     } else {
-      // All operations succeeded
       return res.status(201).json({
         message: "Thêm/cập nhật chỉ số điện nước hàng loạt thành công",
         data: result.success,
